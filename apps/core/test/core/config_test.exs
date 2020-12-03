@@ -1,8 +1,13 @@
 defmodule Core.ConfigTest do
+  use ExUnit.Case, async: false
+
   alias Core.Config
   alias Core.Model
   use Core.DataCase
   alias Core.Repo
+  import Ecto.Query
+
+  import Mock
 
   test "validate attrs" do
     fixture = %{
@@ -113,5 +118,27 @@ defmodule Core.ConfigTest do
     assert {:error, "Cannot find the schema"} == fixture_invalid_config
     |> Map.put(:schema, "not_exist_schema")
     |> Config.create()
+  end
+
+  test "creating cog happen in transactional" do
+    fixture = %{
+      name: "merchant_email_receiver",
+      value: "ops@example.com",
+      datatype: "string",
+      namespace: "default"
+    }
+
+    {:ok, _} = Config.create(fixture)
+    with_mock Core.Repo, [:passthrough], [update_all: fn(_, _) -> {:error, "DB CONNECT REFUSED" } end ] do
+      fixture2 = %{
+        name: "merchant_email_receiver",
+        value: "ops2@example.com",
+        datatype: "string",
+        namespace: "default"
+      }
+      {:error, m} = Config.create(fixture2)
+      assert m == "DB CONNECT REFUSED"
+      assert 1 == Repo.one(from p in "cog", select: count(p.id))
+    end
   end
 end

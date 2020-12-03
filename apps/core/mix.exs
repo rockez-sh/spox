@@ -34,7 +34,8 @@ defmodule Core.MixProject do
       {:ecto_sql, "~> 3.5.3"},
       {:myxql, "~> 0.4.5"},
       {:poison, "~> 4.0.1"},
-      {:ex_json_schema, "~> 0.7.4"}
+      {:ex_json_schema, "~> 0.7.4"},
+      {:mock, "~> 0.3", only: :test}
     ]
   end
 end

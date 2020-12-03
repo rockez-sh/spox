@@ -1,18 +1,30 @@
 defmodule Core.Config do
+  alias Ecto.Multi
   alias Core.Repo
   alias Core.Model.Config, as: ConfigModel
   alias Core.Model.Schema, as: SchemaConfig
   import Ecto.Query
   import Logger
   def create(attrs \\ %{}) do
-    attrs
-    |> validate_schema()
-    |> validate_attribute()
-    |> define_default_value()
-    |> define_changeset()
-    |> insert_repo()
-    |> promote_latest()
-    # |> sync_with_redis()
+
+    case attrs
+      |> validate_schema()
+      |> validate_attribute()
+      |> define_default_value()
+      |> define_changeset() do
+      {:ok, changeset} ->
+        case Multi.new()
+          |> Multi.insert(:inserted_cog, changeset)
+          |> Multi.run(:old_cog, &promote_latest/2)
+          |> Repo.transaction() do
+            {:ok, %{inserted_cog: inserted_cog}} -> {:ok, inserted_cog}
+            {:error, :old_cog, error_message, _} ->
+              {:error, error_message}
+            {:error, :inserted_cog, error_message, _} ->
+              {:error, error_message}
+          end
+      {:error, error} -> {:error, error}
+    end
   end
 
   defp validate_attribute({:ok, attrs}) do
@@ -43,28 +55,16 @@ defmodule Core.Config do
     {:error, validation_error}
   end
 
-  defp insert_repo({:ok, changeset}) do
-    Repo.insert(changeset)
-  end
-
-  defp insert_repo({:error, validation_error}) do
-    {:error, validation_error}
-  end
-
-  defp promote_latest({:ok, changeset}) do
+  defp promote_latest(repo, %{inserted_cog: changeset} ) do
     case ConfigModel
     |> where([c], c.id != ^changeset.id)
     |> where([c], c.name == ^changeset.name)
     |> where([c], c.latest == true)
-    |> Repo.update_all(set: [latest: false]) do
+    |> repo.update_all(set: [latest: false]) do
       {:error, error} -> {:error, error}
       {1, nil} -> {:ok, changeset}
       _ -> {:ok, changeset}
     end
-  end
-
-  defp promote_latest({:error, changeset}) do
-    {:error, changeset}
   end
 
   defp validate_schema(%{schema: schema_name, value: value} = attrs) do
