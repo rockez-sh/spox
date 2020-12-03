@@ -5,7 +5,8 @@ defmodule Core.Config do
   alias Core.Model.Schema, as: SchemaConfig
   alias Core.Redis
   import Ecto.Query
-  import Logger
+  require Logger
+
   def create(attrs \\ %{}) do
 
     case attrs
