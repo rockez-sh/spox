@@ -1,6 +1,6 @@
 defmodule Core.ConfigTest do
   use ExUnit.Case, async: false
-
+  alias Core.Fixture
   alias Core.Config
   alias Core.Model
   use Core.DataCase
@@ -10,25 +10,14 @@ defmodule Core.ConfigTest do
   import Mock
 
   test "validate attrs" do
-    fixture = %{
-      name: "merchant_email_receiver",
-      value: "ops@example.com",
-      datatype: "string"
-    }
-
-    {:error, x} = Config.create(fixture)
+    f = Fixture.cog_string_valid()
+    {_, f} = Map.pop(f, :namespace)
+    {:error, x} = f |> Config.create
     assert x == "namespace must be defined"
   end
 
   test "define default value" do
-    fixture = %{
-      name: "merchant_email_receiver",
-      value: "ops@example.com",
-      datatype: "string",
-      namespace: "default"
-    }
-
-    {:ok, cs} =  Config.create(fixture)
+    {:ok, cs} =  Config.create(Fixture.cog_string_valid())
     assert cs.version > 0
     assert cs.latest == true
     assert cs.inserted_at > 0
@@ -36,30 +25,9 @@ defmodule Core.ConfigTest do
 
   test "promote new version" do
 
-    fixture1 = %{
-      name: "merchant_email_receiver",
-      value: "ops@example.com",
-      datatype: "string",
-      namespace: "default"
-    }
-    {:ok, cs1} =  Config.create(fixture1)
-
-    fixture1a = %{
-      name: "merchant_email_receiver_weekday",
-      value: "ops@example.com",
-      datatype: "string",
-      namespace: "default"
-    }
-    {:ok, cs1a} =  Config.create(fixture1a)
-
-    fixture2 = %{
-      name: "merchant_email_receiver",
-      value: "ops@opay.com",
-      datatype: "string",
-      namespace: "default"
-    }
-
-    {:ok, cs2} =  Config.create(fixture2)
+    {:ok, cs1} =  Fixture.cog_string_valid() |> Config.create
+    {:ok, cs1a} = Fixture.cog_string_valid() |> Map.put(:name, "merchant_email_receiver_weekday") |> Config.create
+    {:ok, cs2} =  Fixture.cog_string_valid() |> Map.put(:value, "ops@newdomain.com") |> Config.create
 
     old_version = Repo.get_by(Core.Model.Config, id: cs1.id)
     another_config = Repo.get_by(Core.Model.Config, id: cs1a.id)
@@ -71,74 +39,32 @@ defmodule Core.ConfigTest do
   end
 
   test "validate with schema" do
-    fixture_schema = %{
-      name: "sample_schema" ,
-      value: """
-      {
-        "type" : "object",
-        "properties" : {
-          "name" : {"type" : "string"},
-          "attr_number" : {"type": "integer"}
-        }
-      }
-      """
-    }
     {:ok, schema_cs} = %Model.Schema{}
-      |> Model.Schema.changeset(fixture_schema)
+      |> Model.Schema.changeset(Fixture.schema_object)
       |> Repo.insert()
 
-    fixture_valid_config = %{
-      name: "merchant_email_receiver",
-      value: """
-      {
-        "name" : "credit_card",
-        "attr_number" : 1
-      }
-      """,
-      datatype: "object",
-      namespace: "default",
-      schema: "sample_schema"
-    }
-    {:ok, cfg} = Config.create(fixture_valid_config)
+    {:ok, cfg} = Config.create(Fixture.cog_object_valid)
     assert cfg.schema_id == schema_cs.id
 
-    fixture_invalid_config = %{
-      name: "merchant_email_receiver",
-      value: """
-      {
-        "name" : "credit_card",
-        "attr_number" : "2"
-      }
-      """,
-      datatype: "object",
-      namespace: "default",
-      schema: "sample_schema"
-    }
-    assert {:error, "invalid payload agains json schema"} == Config.create(fixture_invalid_config)
-    assert {:error, "Cannot find the schema"} == fixture_invalid_config
-    |> Map.put(:schema, "not_exist_schema")
-    |> Config.create()
+    assert {:error, "invalid payload agains json schema"} == Fixture.cog_object_json_schema_invalid |> Config.create()
+    assert {:error, "Cannot find the schema"} == Fixture.cog_object_json_schema_invalid |> Map.put(:schema, "not_exist_schema") |> Config.create()
   end
 
   test "creating cog happen in transactional" do
+    {:ok, _} = Fixture.cog_string_valid |> Config.create
+    with_mock Core.Repo, [:passthrough], [update_all: fn(_, _) -> {:error, "DB CONNECT REFUSED" } end ] do
+      {:error, m} = Fixture.cog_string_valid |> Map.put(:value, "ops2@example.com") |> Config.create()
+      assert m == "DB CONNECT REFUSED"
+      assert 1 == Repo.one(from p in Model.Config, select: count(p.id))
+    end
+  end
+
+  test "make copy in redis" do
     fixture = %{
       name: "merchant_email_receiver",
       value: "ops@example.com",
       datatype: "string",
       namespace: "default"
     }
-
-    {:ok, _} = Config.create(fixture)
-    with_mock Core.Repo, [:passthrough], [update_all: fn(_, _) -> {:error, "DB CONNECT REFUSED" } end ] do
-      fixture2 = %{
-        name: "merchant_email_receiver",
-        value: "ops2@example.com",
-        datatype: "string",
-        namespace: "default"
-      }
-      {:error, m} = Config.create(fixture2)
-      assert m == "DB CONNECT REFUSED"
-      assert 1 == Repo.one(from p in "cog", select: count(p.id))
-    end
   end
 end
