@@ -3,6 +3,7 @@ defmodule Core.Config do
   alias Core.Repo
   alias Core.Model.Config, as: ConfigModel
   alias Core.Model.Schema, as: SchemaConfig
+  alias Core.Redis
   import Ecto.Query
   import Logger
   def create(attrs \\ %{}) do
@@ -16,11 +17,10 @@ defmodule Core.Config do
         case Multi.new()
           |> Multi.insert(:inserted_cog, changeset)
           |> Multi.run(:old_cog, &promote_latest/2)
+          |> Multi.run(:redis_copy, &copy_to_redis/2)
           |> Repo.transaction() do
             {:ok, %{inserted_cog: inserted_cog}} -> {:ok, inserted_cog}
-            {:error, :old_cog, error_message, _} ->
-              {:error, error_message}
-            {:error, :inserted_cog, error_message, _} ->
+            {:error, _, error_message, _} ->
               {:error, error_message}
           end
       {:error, error} -> {:error, error}
@@ -86,6 +86,13 @@ defmodule Core.Config do
 
   defp validate_schema(attrs) do
     {:ok, attrs}
+  end
+
+  defp copy_to_redis(_, %{inserted_cog: changeset}) do
+    case Redis.command(:set, "cog:item:#{changeset.name}", %{version: changeset.version, value: changeset.value} |> Poison.encode! ) do
+      {:ok, _} -> {:ok, changeset}
+      {:error, m} -> {:error, m}
+    end
   end
 
 

@@ -38,4 +38,7 @@ config :core, Core.Repo,
   hostname: "localhost",
   port: 3306
 
+config :core,
+  config_transformer: Core.Utils.Config.Transformer
+
  import_config "#{Mix.env()}.exs"

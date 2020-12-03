@@ -35,6 +35,7 @@ defmodule Core.MixProject do
       {:myxql, "~> 0.4.5"},
       {:poison, "~> 4.0.1"},
       {:ex_json_schema, "~> 0.7.4"},
+      {:redix, "~> 1.0"},
       {:mock, "~> 0.3", only: :test}
     ]
   end

@@ -8,3 +8,7 @@ config :core, Core.Repo,
   hostname: "localhost",
   port: 3306,
   pool: Ecto.Adapters.SQL.Sandbox
+
+config :core, :redis,
+  host: "127.0.0.1",
+  port: 6379

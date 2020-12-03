@@ -60,11 +60,17 @@ defmodule Core.ConfigTest do
   end
 
   test "make copy in redis" do
-    fixture = %{
-      name: "merchant_email_receiver",
-      value: "ops@example.com",
-      datatype: "string",
-      namespace: "default"
-    }
+    with_mock Core.Redis, [:passthrough], [] do
+      {:ok, cs} = Fixture.cog_string_valid |> Config.create
+      assert_called Core.Redis.command(:set, "cog:item:#{cs.name}", %{version: cs.version, value: cs.value} |> Poison.encode! )
+    end
+  end
+
+  test "when copy to redis fail" do
+    with_mock Core.Redis, [:passthrough], [command: fn(:set, _, _) -> {:error, "REDIS DISCONNECTED"} end] do
+      {:error, error_message} = Fixture.cog_string_valid |> Config.create
+      assert error_message == "REDIS DISCONNECTED"
+      assert Repo.one(from p in Model.Config, select: count(p.id)) == 0
+    end
   end
 end
