@@ -8,7 +8,6 @@ defmodule Core.Config do
   require Logger
 
   def create(attrs \\ %{}) do
-
     case attrs
       |> validate_schema()
       |> validate_attribute()
@@ -35,6 +34,7 @@ defmodule Core.Config do
       {:ok, attrs}
     end
   end
+
   defp validate_attribute({:error, validation_error}) do
     {:error, validation_error}
   end
