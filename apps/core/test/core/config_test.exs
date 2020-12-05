@@ -62,7 +62,7 @@ defmodule Core.ConfigTest do
   test "make copy in redis" do
     with_mock Core.Redis, [:passthrough], [] do
       {:ok, cs} = Fixture.cog_string_valid |> Config.create
-      assert_called Core.Redis.command(:set, "cog:item:#{cs.name}", %{version: cs.version, value: cs.value} |> Poison.encode! )
+      assert_called Core.Redis.command(:set, "cog:val:#{cs.namespace}.#{cs.name}", %{version: cs.version, value: cs.value} |> Poison.encode! )
     end
   end
 

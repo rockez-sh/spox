@@ -90,7 +90,7 @@ defmodule Core.Config do
   end
 
   defp copy_to_redis(_, %{inserted_cog: changeset}) do
-    case Redis.command(:set, "cog:item:#{changeset.name}", %{version: changeset.version, value: changeset.value} |> Poison.encode! ) do
+    case Redis.command(:set, "cog:val:#{changeset.namespace}.#{changeset.name}", %{version: changeset.version, value: changeset.value} |> Poison.encode! ) do
       {:ok, _} -> {:ok, changeset}
       {:error, m} -> {:error, m}
     end

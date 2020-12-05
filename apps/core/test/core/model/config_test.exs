@@ -8,6 +8,7 @@ defmodule Core.Model.ConfigTest do
       version: 1,
       datatype: "string",
       latest: true,
+      namespace: "default"
     }
 
     {:ok, _} =  %Core.Model.Config{}
@@ -20,6 +21,6 @@ defmodule Core.Model.ConfigTest do
     |> Core.Model.Config.changeset(fixture)
     |> Core.Repo.insert()
 
-    assert %{cog: ["has already been taken"]} == errors_on(cs)
+    assert %{name: ["has already been taken"]} == errors_on(cs)
   end
 end

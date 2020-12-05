@@ -11,6 +11,7 @@ defmodule Core.Model.Config do
     field :collection_id, :string
     field :latest, :boolean
     field :datatype, :string
+    field :namespace, :string
     timestamps()
   end
 
@@ -23,9 +24,10 @@ defmodule Core.Model.Config do
       :collection_id,
       :version,
       :latest,
-      :datatype
+      :datatype,
+      :namespace
     ])
-    |> validate_required([:name, :value])
-    |> unique_constraint(:cog, name: :config_name_version_unique_index)
+    |> validate_required([:name, :value, :namespace])
+    |> unique_constraint([:name, :namespace, :version])
   end
 end
