@@ -14,16 +14,13 @@ defmodule Core.Config do
       |> define_changeset() do
       {:ok, changeset} ->
         case Multi.new()
-          |> Multi.insert(:inserted_cog, changeset)
+          |> Multi.insert(:saving_cog, changeset)
           |> Multi.run(:old_cog, &promote_latest/2)
           |> Multi.run(:redis_copy, &copy_to_redis/2)
           |> Repo.transaction() do
-            {:ok, %{inserted_cog: inserted_cog}} -> {:ok, inserted_cog}
-            {:error, :inserted_cog, repo, _} ->
-              case repo.valid? do
-                false ->  {:error, :constraint_error, repo}
-                true -> {:error, :uknown_error, repo}
-              end
+            {:ok, %{saving_cog: saving_cog}} -> {:ok, saving_cog}
+            {:error, :saving_cog, repo, _} ->
+              {:error, :saving_cog, repo}
             {:error, _, error_message, _} ->
               {:error, error_message}
           end
@@ -49,7 +46,7 @@ defmodule Core.Config do
     {:error, validation_error}
   end
 
-  defp promote_latest(repo, %{inserted_cog: changeset} ) do
+  defp promote_latest(repo, %{saving_cog: changeset} ) do
     case ConfigModel
     |> where([c], c.id != ^changeset.id)
     |> where([c], c.name == ^changeset.name)
@@ -82,7 +79,7 @@ defmodule Core.Config do
     {:ok, attrs}
   end
 
-  defp copy_to_redis(_, %{inserted_cog: changeset}) do
+  defp copy_to_redis(_, %{saving_cog: changeset}) do
     case Redis.command(:set, "cog:val:#{changeset.namespace}.#{changeset.name}", %{version: changeset.version, value: changeset.value} |> Poison.encode! ) do
       {:ok, _} -> {:ok, changeset}
       {:error, m} -> {:error, m}
