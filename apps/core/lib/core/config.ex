@@ -10,7 +10,6 @@ defmodule Core.Config do
   def create(attrs \\ %{}) do
     case attrs
       |> validate_schema()
-      |> validate_attribute()
       |> define_default_value()
       |> define_changeset() do
       {:ok, changeset} ->
@@ -20,23 +19,17 @@ defmodule Core.Config do
           |> Multi.run(:redis_copy, &copy_to_redis/2)
           |> Repo.transaction() do
             {:ok, %{inserted_cog: inserted_cog}} -> {:ok, inserted_cog}
+            {:error, :inserted_cog, repo, _} ->
+              case repo.valid? do
+                false ->  {:error, :constraint_error, repo}
+                true -> {:error, :uknown_error, repo}
+              end
             {:error, _, error_message, _} ->
               {:error, error_message}
           end
-      {:error, error} -> {:error, error}
+      {:error, error}  ->
+        {:error, error}
     end
-  end
-
-  defp validate_attribute({:ok, attrs}) do
-    if attrs[:namespace] == nil do
-      {:error, "namespace must be defined"}
-    else
-      {:ok, attrs}
-    end
-  end
-
-  defp validate_attribute({:error, validation_error}) do
-    {:error, validation_error}
   end
 
   defp define_default_value({:ok, attrs})  do

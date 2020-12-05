@@ -12,8 +12,9 @@ defmodule Core.ConfigTest do
   test "validate attrs" do
     f = Fixture.cog_string_valid()
     {_, f} = Map.pop(f, :namespace)
-    {:error, x} = f |> Config.create
-    assert x == "namespace must be defined"
+    {:error, :constraint_error, cs} = f |> Config.create
+    {msg, _} = cs.errors[:namespace]
+    assert msg == "can't be blank"
   end
 
   test "define default value" do
