@@ -83,4 +83,18 @@ defmodule Core.ConfigTest do
     |> Config.create
    assert %{name: cfg.name, version: cfg.version, value: cfg.value, schema: sch.name} == cfg |> Config.as_json
   end
+
+  test "find" do
+    fixture = Fixture.cog_object_valid
+    %Model.Config{}
+    |> Model.Config.changeset(fixture |> Map.put(:version, 1) |> Map.put(:latest, false))
+    |> Repo.insert
+
+    %Model.Config{}
+    |> Model.Config.changeset(fixture |> Map.put(:version, 2) |> Map.put(:latest, true))
+    |> Repo.insert
+
+    latest = Config.find(fixture |> Map.fetch!(:name))
+    assert latest.version == 2
+  end
 end

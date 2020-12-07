@@ -38,6 +38,13 @@ defmodule Core.Config do
     }
   end
 
+  def find(name) do
+    ConfigModel
+    |> where([c], c.name == ^name)
+    |> where([c], c.latest == true)
+    |> Repo.one
+  end
+
   defp schema_name!(changeset) do
     case changeset.schema_id do
       nil -> nil
