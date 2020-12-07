@@ -97,4 +97,13 @@ defmodule Core.ConfigTest do
     latest = Config.find(fixture |> Map.fetch!(:name))
     assert latest.version == 2
   end
+
+  test "upserting" do
+    fixture = Fixture.cog_string_valid
+    fixture |> Map.put(:value, "old@mail.com") |> Config.create
+    fixture |> Map.put(:value, "newest@mail.com") |> Config.create
+    latest_cog = Config.find(fixture |> Map.fetch!(:name))
+    assert latest_cog.value == "newest@mail.com"
+    assert 2 == Core.Model.Config |> select([c], count(c.id)) |> Core.Repo.one
+  end
 end

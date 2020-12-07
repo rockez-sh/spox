@@ -5,14 +5,15 @@ defmodule Core.Config do
   alias Core.Model.Schema, as: SchemaConfig
   alias Core.Redis
   import Ecto.Query
+  import Core.Utils
   require Logger
 
   def create(attrs \\ %{}) do
-    case attrs
-      |> validate_schema()
-      |> define_default_value()
-      |> define_changeset() do
-      {:ok, changeset} ->
+    case multi()
+      |> run(:validate_schema, &validate_schema/1, attrs)
+      |> run(:define_default, &define_default_value/1)
+      |> run(:define_changeset, &define_changeset/1) do
+      {:ok, %{define_changeset: changeset}} ->
         case Multi.new()
           |> Multi.insert(:saving_cog, changeset)
           |> Multi.run(:old_cog, &promote_latest/2)
@@ -24,7 +25,7 @@ defmodule Core.Config do
             {:error, _, error_message, _} ->
               {:error, error_message}
           end
-      {:error, error}  ->
+      {:error, _, error}  ->
         {:error, error}
     end
   end
@@ -52,21 +53,14 @@ defmodule Core.Config do
     end
   end
 
-  defp define_default_value({:ok, attrs})  do
+  defp define_default_value(%{validate_schema: attrs}) do
     {:ok, attrs
     |> Map.put(:latest, true)
     |> Map.put(:version, DateTime.utc_now |> DateTime.to_unix(:millisecond))}
   end
 
-  defp define_default_value({:error, validation_error}) do
-    {:error, validation_error}
-  end
-
-  defp define_changeset({:ok, attrs}) do
-    {:ok, ConfigModel.changeset(%ConfigModel{}, attrs)}
-  end
-  defp define_changeset({:error, validation_error}) do
-    {:error, validation_error}
+  defp define_changeset(%{define_default: attrs}) do
+    {:ok, ConfigModel.changeset(%ConfigModel{}, attrs) }
   end
 
   defp promote_latest(repo, %{saving_cog: changeset} ) do

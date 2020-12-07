@@ -7,6 +7,17 @@ defmodule Core.Utils do
     {:ok, %{}}
   end
 
+  def multi(args, state, func) do
+    case func.(args) do
+       {:ok, result } -> {:ok, %{} |> Map.put(state, result)}
+       {:error, message} -> {:error, state, message}
+    end
+  end
+
+  def run(prev, current_state, func, args) do
+    run(prev, current_state, fn (state) -> func.(args) end  )
+  end
+
   def run(prev, current_state, func) do
     case prev do
       {:ok, state} ->
