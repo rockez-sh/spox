@@ -29,6 +29,22 @@ defmodule Core.Config do
     end
   end
 
+  def as_json(changeset) do
+    %{
+      version: changeset.version,
+      value: changeset.value,
+      name: changeset.name,
+      schema: changeset |> schema_name!
+    }
+  end
+
+  defp schema_name!(changeset) do
+    case changeset.schema_id do
+      nil -> nil
+      sch_id -> Repo.get(SchemaConfig, sch_id).name
+    end
+  end
+
   defp define_default_value({:ok, attrs})  do
     {:ok, attrs
     |> Map.put(:latest, true)
@@ -80,7 +96,7 @@ defmodule Core.Config do
   end
 
   defp copy_to_redis(_, %{saving_cog: changeset}) do
-    case Redis.command(:set, "cog:val:#{changeset.namespace}.#{changeset.name}", %{version: changeset.version, value: changeset.value} |> Poison.encode! ) do
+    case Redis.command(:set, "cog:val:#{changeset.namespace}.#{changeset.name}", changeset |> as_json |> Poison.encode! ) do
       {:ok, _} -> {:ok, changeset}
       {:error, m} -> {:error, m}
     end

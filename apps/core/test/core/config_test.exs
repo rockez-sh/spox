@@ -6,9 +6,14 @@ defmodule Core.ConfigTest do
   use Core.DataCase
   alias Core.Repo
   import Ecto.Query
+  alias Core.SchemaService
 
   import Mock
 
+  setup do
+    Fixture.schema_object |> SchemaService.create
+    :ok
+  end
   test "validate attrs" do
     f = Fixture.cog_string_valid()
     {_, f} = Map.pop(f, :namespace)
@@ -40,10 +45,7 @@ defmodule Core.ConfigTest do
   end
 
   test "validate with schema" do
-    {:ok, schema_cs} = %Model.Schema{}
-      |> Model.Schema.changeset(Fixture.schema_object)
-      |> Repo.insert()
-
+    schema_cs = Model.Schema |> first |> Repo.one
     {:ok, cfg} = Config.create(Fixture.cog_object_valid)
     assert cfg.schema_id == schema_cs.id
 
@@ -63,7 +65,7 @@ defmodule Core.ConfigTest do
   test "make copy in redis" do
     with_mock Core.Redis, [:passthrough], [] do
       {:ok, cs} = Fixture.cog_string_valid |> Config.create
-      assert_called Core.Redis.command(:set, "cog:val:#{cs.namespace}.#{cs.name}", %{version: cs.version, value: cs.value} |> Poison.encode! )
+      assert_called Core.Redis.command(:set, "cog:val:#{cs.namespace}.#{cs.name}", cs |> Config.as_json |> Poison.encode! )
     end
   end
 
@@ -73,5 +75,12 @@ defmodule Core.ConfigTest do
       assert error_message == "REDIS DISCONNECTED"
       assert Repo.one(from p in Model.Config, select: count(p.id)) == 0
     end
+  end
+
+  test "as_json" do
+    sch = Model.Schema |> first |> Repo.one
+    {:ok, cfg} = Fixture.cog_object_valid
+    |> Config.create
+   assert %{name: cfg.name, version: cfg.version, value: cfg.value, schema: sch.name} == cfg |> Config.as_json
   end
 end
