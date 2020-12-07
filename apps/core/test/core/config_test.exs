@@ -65,12 +65,16 @@ defmodule Core.ConfigTest do
   test "make copy in redis" do
     with_mock Core.Redis, [:passthrough], [] do
       {:ok, cs} = Fixture.cog_string_valid |> Config.create
-      assert_called Core.Redis.command(:set, "cog:val:#{cs.namespace}.#{cs.name}", cs |> Config.as_json |> Poison.encode! )
+      commands = [
+        ["SET", "cog:val:#{cs.namespace}.#{cs.name}", cs.value],
+        ["SET", "cog:ver:#{cs.namespace}.#{cs.name}", cs.version],
+      ]
+      assert_called Core.Redis.transaction_pipeline(commands)
     end
   end
 
   test "when copy to redis fail" do
-    with_mock Core.Redis, [:passthrough], [command: fn(:set, _, _) -> {:error, "REDIS DISCONNECTED"} end] do
+    with_mock Core.Redis, [:passthrough], [transaction_pipeline: fn(_) -> {:error, "REDIS DISCONNECTED"} end] do
       {:error, error_message} = Fixture.cog_string_valid |> Config.create
       assert error_message == "REDIS DISCONNECTED"
       assert Repo.one(from p in Model.Config, select: count(p.id)) == 0
@@ -105,5 +109,51 @@ defmodule Core.ConfigTest do
     latest_cog = Config.find(fixture |> Map.fetch!(:name))
     assert latest_cog.value == "newest@mail.com"
     assert 2 == Core.Model.Config |> select([c], count(c.id)) |> Core.Repo.one
+  end
+
+  test "get_version" do
+    fixture = Fixture.cog_string_valid
+    {:ok, cs } = fixture |> Config.create
+    {:ok, version } = Config.get_version(fixture |> Map.fetch!(:name))
+    assert version == cs.version
+  end
+
+  test "get version not found in redis" do
+    fixture = Fixture.cog_string_valid
+    {:ok, cs } = fixture |> Config.create
+    Core.Redis.command(:flushall)
+
+    with_mock Core.Redis, [:passthrough], [] do
+      {:ok, version } = Config.get_version(fixture |> Map.fetch!(:name))
+      assert version == cs.version
+      commands = [
+        ["SET", "cog:val:#{cs.namespace}.#{cs.name}", cs.value],
+        ["SET", "cog:ver:#{cs.namespace}.#{cs.name}", cs.version],
+      ]
+      assert_called Core.Redis.transaction_pipeline(commands)
+    end
+  end
+
+  test "get_value" do
+    fixture = Fixture.cog_string_valid
+    {:ok, cs } = fixture |> Config.create
+    {:ok, version } = Config.get_value(fixture |> Map.fetch!(:name))
+    assert version == cs.value
+  end
+
+  test "get value not found in redis" do
+    fixture = Fixture.cog_string_valid
+    {:ok, cs } = fixture |> Config.create
+    Core.Redis.command(:flushall)
+
+    with_mock Core.Redis, [:passthrough], [] do
+      {:ok, version } = Config.get_value(fixture |> Map.fetch!(:name))
+      assert version == cs.value
+      commands = [
+        ["SET", "cog:val:#{cs.namespace}.#{cs.name}", cs.value],
+        ["SET", "cog:ver:#{cs.namespace}.#{cs.name}", cs.version],
+      ]
+      assert_called Core.Redis.transaction_pipeline(commands)
+    end
   end
 end

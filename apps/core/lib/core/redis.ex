@@ -6,6 +6,10 @@ defmodule Core.Redis do
     Redix.start_link(host: host, port: port, name: __MODULE__)
   end
 
+  def command(command) do
+    Redix.command(__MODULE__, [command])
+  end
+
   def command(command, args) when is_list(args) do
     Redix.command(__MODULE__, [command | args])
   end
@@ -16,5 +20,9 @@ defmodule Core.Redis do
 
   def command(:set, key, value) do
     Redix.command(__MODULE__, ["SET", key, value])
+  end
+
+  def transaction_pipeline(commands) do
+    Redix.transaction_pipeline(__MODULE__, commands)
   end
 end

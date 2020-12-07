@@ -39,11 +39,34 @@ defmodule Core.Config do
     }
   end
 
-  def find(name) do
+  def find(name, namespace \\ "default") do
     ConfigModel
     |> where([c], c.name == ^name)
+    |> where([c], c.namespace == ^namespace)
     |> where([c], c.latest == true)
     |> Repo.one
+  end
+
+  def get_version(name, namespace \\"default") do
+    case Redis.command(:get, "cog:ver:#{namespace}.#{name}") do
+      {:ok, nil} ->
+        cs = find(name, namespace)
+        copy_to_redis(cs)
+        {:ok, cs.version}
+      {:ok, val} ->
+        {intVer, _} = Integer.parse(val)
+        {:ok, intVer}
+    end
+  end
+
+  def get_value(name, namespace \\ "default") do
+    case Redis.command(:get, "cog:val:#{namespace}.#{name}") do
+      {:ok, nil} ->
+        cs = find(name, namespace)
+        copy_to_redis(cs)
+        {:ok, cs.value}
+      {:ok, val} -> {:ok, val}
+    end
   end
 
   defp schema_name!(changeset) do
@@ -96,11 +119,19 @@ defmodule Core.Config do
     {:ok, attrs}
   end
 
-  defp copy_to_redis(_, %{saving_cog: changeset}) do
-    case Redis.command(:set, "cog:val:#{changeset.namespace}.#{changeset.name}", changeset |> as_json |> Poison.encode! ) do
+  defp copy_to_redis(changeset) do
+    commands = [
+      ["SET", "cog:val:#{changeset.namespace}.#{changeset.name}", changeset.value ],
+      ["SET", "cog:ver:#{changeset.namespace}.#{changeset.name}", changeset.version]
+    ]
+    case Redis.transaction_pipeline(commands) do
       {:ok, _} -> {:ok, changeset}
-      {:error, m} -> {:error, m}
+      {:error, message} -> {:error, message}
     end
+  end
+
+  defp copy_to_redis(_, %{saving_cog: changeset}) do
+    copy_to_redis(changeset)
   end
 
 

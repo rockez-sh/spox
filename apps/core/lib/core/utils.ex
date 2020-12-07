@@ -18,6 +18,14 @@ defmodule Core.Utils do
     run(prev, current_state, fn (state) -> func.(args) end  )
   end
 
+  def run(prev, current_state, func, args, args2) do
+    run(prev, current_state, fn (state) -> func.(args, args2) end  )
+  end
+
+  def run(prev, current_state, func, args, args2, args3) do
+    run(prev, current_state, fn (state) -> func.(args, args2, args3) end  )
+  end
+
   def run(prev, current_state, func) do
     case prev do
       {:ok, state} ->
