@@ -3,9 +3,9 @@
 - [x] Service Creating COG
 - [x] Service Creating SCH
 - [x] API upserting COG
-- [ ] API create/update SCH
-- [ ] API Search Global COG , COL & SCHEMA
+- [x] API create/update SCH
 - [ ] TCP fetching COG / COl
+- [ ] API Search Global COG , COL & SCHEMA
 - [ ] Base UI
 - [ ] UI Listing/Search COG
 - [ ] UI Create/update COG
