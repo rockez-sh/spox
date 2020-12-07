@@ -1,13 +1,21 @@
 defmodule HttpApi.Endpoints do
+  alias Core.Utils
   use Plug.Router
   plug :match
   plug Plug.Parsers, parsers: [:json], pass: ["application/json"], json_decoder: Poison
   plug :dispatch
 
 
+  alias Core.Config, as: ConfigSVC
   post "/api/cog" do
-    {:ok, "OK"}
-    |> handle_response(conn)
+    case cog = conn.body_params
+    |> Map.fetch!("cog")
+    |> Utils.atomize_map
+    |> ConfigSVC.create do
+      {:ok, cs} ->
+        {:ok, cs |> ConfigSVC.as_json |> Poison.encode!}
+      _ -> {:server_error, "unknow error"}
+    end |> handle_response(conn)
   end
 
 
