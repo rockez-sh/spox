@@ -25,8 +25,8 @@ defmodule Core.Config do
             {:error, _, error_message, _} ->
               {:error, error_message}
           end
-      {:error, _, error}  ->
-        {:error, error}
+      {:error, state, error}  ->
+        {:error, state, error}
     end
   end
 
@@ -77,17 +77,17 @@ defmodule Core.Config do
 
   defp validate_schema(%{schema: schema_name, value: value} = attrs) do
     case from(s in SchemaConfig, where: s.name == ^schema_name) |>Repo.one() do
-      nil -> {:error, "Cannot find the schema"}
+      nil -> {:error, :schema_not_found}
       schema ->
         Logger.info("Schema Found")
         case schema.value
           |> Poison.decode!
           |> ExJsonSchema.Schema.resolve()
-          |> ExJsonSchema.Validator.valid?(value |> Poison.decode!) do
-            true ->
+          |> ExJsonSchema.Validator.validate(value |> Poison.decode!) do
+            :ok ->
               attrs = attrs |> Map.delete(:schema) |> Map.put(:schema_id, schema.id)
               {:ok, attrs}
-            _ -> {:error, "invalid payload agains json schema"}
+            {:error, detail_error} -> {:error, detail_error}
         end
     end
   end

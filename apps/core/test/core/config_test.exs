@@ -49,8 +49,8 @@ defmodule Core.ConfigTest do
     {:ok, cfg} = Config.create(Fixture.cog_object_valid)
     assert cfg.schema_id == schema_cs.id
 
-    assert {:error, "invalid payload agains json schema"} == Fixture.cog_object_json_schema_invalid |> Config.create()
-    assert {:error, "Cannot find the schema"} == Fixture.cog_object_json_schema_invalid |> Map.put(:schema, "not_exist_schema") |> Config.create()
+    assert {:error, :validate_schema, [{"Type mismatch. Expected Integer but got String.", "#/attr_number"}]} == Fixture.cog_object_json_schema_invalid |> Config.create()
+    assert {:error, :validate_schema, :schema_not_found} == Fixture.cog_object_json_schema_invalid |> Map.put(:schema, "not_exist_schema") |> Config.create()
   end
 
   test "creating cog happen in transactional" do

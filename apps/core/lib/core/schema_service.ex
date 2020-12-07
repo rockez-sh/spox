@@ -1,6 +1,7 @@
 defmodule Core.SchemaService do
   alias Core.Model.Schema
   alias Core.Repo
+  import Ecto.Query
 
   def create(attrs \\ %{}) do
     case Schema.changeset(%Schema{}, attrs)
@@ -14,4 +15,15 @@ defmodule Core.SchemaService do
         end
     end
   end
+
+  def find(name) do
+    Schema
+    |> where([c], c.name == ^name)
+    |> Repo.one
+  end
+
+  def as_json(schema) do
+    %{name: schema.name, value: schema.value}
+  end
+
 end
