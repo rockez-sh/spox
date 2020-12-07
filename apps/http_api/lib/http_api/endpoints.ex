@@ -26,7 +26,13 @@ defmodule HttpApi.Endpoints do
     |> Map.fetch!("sch")
     |> Utils.atomize_map
     |> SchemaSVC.create do
-      {:ok, schema} -> {:ok, schema |> SchemaSVC.as_json |> Poison.encode!}
+      {:ok, schema} ->
+        {:ok, schema
+        |> SchemaSVC.as_json
+        |> Poison.encode!}
+      {:error, stage, message} ->
+        {:malformed_data, response_error(:create_schema, stage, message)
+        |> Poison.encode!}
     end |> handle_response(conn)
   end
 
@@ -51,11 +57,18 @@ defmodule HttpApi.Endpoints do
   end
 
   defp response_error(:schema_error, :schema_not_found) do
-    %{success: false, errors: [%{schema: "not found"}]}
+    %{success: false, errors: %{schema: "not found"}}
   end
 
   defp response_error(:schema_error, errors) when is_list(errors) do
     %{success: false, schema_errors: errors |> schema_errors_to_list}
+  end
+
+  defp response_error(:create_schema, :validate_schema, message) do
+    %{success: false, errors: %{value: message}}
+  end
+  defp response_error(:create_schema, :parsed_json, message) do
+    %{success: false, errors: %{value: message}}
   end
 
   defp schema_errors_to_list(errors) do

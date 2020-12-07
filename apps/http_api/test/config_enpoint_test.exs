@@ -25,7 +25,7 @@ defmodule HttpApi.ConfigEnpointTest do
   test "post /api/cog schema not found" do
     {status, response } = make_call(:post, "/api/cog", %{cog: Fixture.cog_object_json_schema_invalid})
     assert status == 400
-    %{"success" => false , "errors" => [shecma_not_found| _] } = response |> Poison.decode!
-    assert shecma_not_found == %{"schema" => "not found"}
+    %{"success" => false , "errors" => %{"schema" => schema_not_found} } = response |> Poison.decode!
+    assert schema_not_found == "not found"
   end
 end

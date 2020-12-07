@@ -5,6 +5,7 @@ defmodule HttpApi.SchemaEndpointTest do
   import HttpApi.TestUtils
   alias Core.Fixture
   alias Core.SchemaService, as: SchemaSVC
+  import Ecto.Query
 
   test "post /api/sch" do
     fixture = Fixture.schema_object
@@ -14,4 +15,60 @@ defmodule HttpApi.SchemaEndpointTest do
     assert sch_json == created_sch |> SchemaSVC.as_json |> Poison.encode!
   end
 
+  test "post /api/sch upserting" do
+    fixture = Fixture.schema_object
+    {status, _ } = make_call(:post, "/api/sch", %{sch: fixture})
+    assert status == 200
+    new_schema = """
+      {
+        "type" : "object",
+        "properties" : {
+          "name" : {"type" : "string"},
+          "attr_number" : {"type": "integer", "enum" : [1,2,3]}
+        }
+      }
+    """
+    {status, _ } = make_call(:post, "/api/sch", %{sch: fixture |> Map.put(:value, new_schema) })
+    assert status == 200
+
+    schema_name = fixture|> Map.fetch!(:name)
+    assert 1 == Core.Model.Schema
+    |> where([s], s.name == ^schema_name)
+    |> select([s], count(s.id))
+    |> Core.Repo.one
+  end
+
+  test "post /api/sch parse json" do
+    fixture = Fixture.schema_object
+    new_schema = """
+      {
+        "type" : "object"
+        "properties" : {
+          "name" : {"type" : "string"},
+          "attr_number" : {"type": "integer", "enum" : [1,2,3]}
+        }
+      }
+    """
+    {status, sch_json } = make_call(:post, "/api/sch", %{sch: fixture |> Map.put(:value, new_schema) })
+    assert status == 400
+    %{"success" =>  false, "errors" => %{"value" => value_error}} = sch_json |> Poison.decode!
+    assert value_error == "Invalid JSON"
+  end
+
+  test "post /api/sch resolve schema" do
+    fixture = Fixture.schema_object
+    new_schema = """
+      {
+        "type" : "xobjectx",
+        "properties" : {
+          "name" : {"type" : "string"},
+          "attr_number" : {"type": "integer", "enum" : [1,2,3]}
+        }
+      }
+    """
+    {status, sch_json } = make_call(:post, "/api/sch", %{sch: fixture |> Map.put(:value, new_schema) })
+    assert status == 400
+    %{"success" =>  false, "errors" => %{"value" => value_error}} = sch_json |> Poison.decode!
+    assert value_error == "Invalid JSON Schema"
+  end
 end
