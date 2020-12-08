@@ -29,7 +29,7 @@ use Mix.Config
 #
 
 config :tcp_api, :server,
-  port: 5001,
+  port: 5002,
   max_conn: 1000
 
 import_config "#{Mix.env()}.exs"
