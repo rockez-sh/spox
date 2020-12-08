@@ -50,9 +50,12 @@ defmodule Core.Config do
   def get_version(name, namespace \\"default") do
     case Redis.command(:get, "cog:ver:#{namespace}.#{name}") do
       {:ok, nil} ->
-        cs = find(name, namespace)
-        copy_to_redis(cs)
-        {:ok, cs.version}
+        case find(name, namespace) do
+          nil -> {:ok, nil}
+          cs ->
+            copy_to_redis(cs)
+            {:ok, cs.version}
+        end
       {:ok, val} ->
         {intVer, _} = Integer.parse(val)
         {:ok, intVer}
@@ -62,9 +65,12 @@ defmodule Core.Config do
   def get_value(name, namespace \\ "default") do
     case Redis.command(:get, "cog:val:#{namespace}.#{name}") do
       {:ok, nil} ->
-        cs = find(name, namespace)
-        copy_to_redis(cs)
-        {:ok, cs.value}
+        case find(name, namespace) do
+          nil -> {:ok, nil}
+          cs ->
+            copy_to_redis(cs)
+            {:ok, cs.value}
+        end
       {:ok, val} -> {:ok, val}
     end
   end
