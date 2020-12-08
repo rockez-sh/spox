@@ -1,13 +1,13 @@
 defmodule TcpApi.Handler do
   require Logger
 
-  def start_link(ref, transport, opt) do
-    pid = spawn_link(__MODULE__, :init, [ref, transport, opt])
+  def start_link(ref, socket, transport, opt) do
+    pid = spawn_link(__MODULE__, :init, [ref, socket, transport, opt])
     {:ok, pid}
   end
 
-  def init(ref, transport, _opt=[]) do
-    {:ok, socket} = :ranch.handshake(ref)
+  def init(ref, socket, transport, _opt=[]) do
+    :ok =  :ranch.accept_ack(ref)
 
     case transport.peername(socket) do
       {:ok, _peer} -> loop(socket, transport, "")
@@ -17,7 +17,7 @@ defmodule TcpApi.Handler do
 
   def loop(socket, transport, acc) do
     transport.setopts(socket, [active: :once])
-    {ok, closed, error, passive} = transport.messages()
+    {ok, closed, error} = transport.messages()
     receive do
       {'EXIT', parent, reason} ->
         Logger.error("[tcp.handler] exit parent reason: #{inspect(reason)}")

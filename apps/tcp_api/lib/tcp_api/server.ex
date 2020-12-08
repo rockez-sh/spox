@@ -5,7 +5,7 @@ defmodule TcpApi.Server do
   def start_link do
     Logger.debug("[tcp] starting server on port :#{port()}")
     opts = [port: port()]
-    {:ok, _} = :ranch.start_listener(:tcp, :ranch_tcp, %{num_acceptors: max_conn,socket_opts: opts} , TcpApi.Handler, [])
+    {:ok, _} = :ranch.start_listener(:tcp, max_conn(), :ranch_tcp, opts, TcpApi.Handler, [])
   end
 
   defp port do
