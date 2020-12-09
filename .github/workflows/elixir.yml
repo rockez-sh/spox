@@ -16,8 +16,12 @@ jobs:
         image: mysql:5.7
         env:
           MYSQL_ROOT_PASSWORD: sqlsecret
+        ports:
+          - 3306:3306
       redis:
         image: redis:4.0.1
+        ports:
+          - 6379:6379
     steps:
     - uses: actions/checkout@v2
     - name: Set up Elixir
@@ -37,8 +41,6 @@ jobs:
       env:
         MIX_ENV: test
       run: |
-        mv apps/core/config/test.exs apps/core/config/test.exs.bak
-        mv apps/core/config/test_ci.exs apps/core/config/test.exs
         mix ecto.create
         mix ecto.migrate
     - name: Run tests
