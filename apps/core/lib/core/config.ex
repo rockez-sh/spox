@@ -112,7 +112,7 @@ defmodule Core.Config do
       nil -> {:ok, :ok}
       cid ->
         col_cs = Core.Model.Collection |> Repo.get(cid)
-        case CollectionService.touch(repo, col_cs) do
+        case CollectionService.touch(repo, col_cs, changeset) do
           {:ok, cs} -> {:ok, cs}
           {:error, message} -> {:error, message}
         end
