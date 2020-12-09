@@ -42,11 +42,7 @@ jobs:
       env:
         MIX_ENV: test
       run: |
-        echo "config :core, Core.Repo, hostname: 0.0.0.0" >> apps/core/config/test.exs
-        echo "config :core, :redis, host: 0.0.0.0" >> apps/core/config/test.exs
         mix ecto.migrate
     - name: Run tests
       run: |
-        echo "config :core, Core.Repo, hostname: 0.0.0.0" >> apps/core/config/test.exs
-        echo "config :core, :redis, host: 0.0.0.0" >> apps/core/config/test.exs
         mix test

@@ -5,10 +5,10 @@ config :core, Core.Repo,
   database: "spock_db_test",
   username: "root",
   password: "sqlsecret",
-  hostname: "localhost",
+  hostname: "0.0.0.0",
   port: 3306,
   pool: Ecto.Adapters.SQL.Sandbox
 
 config :core, :redis,
-  host: "127.0.0.1",
+  host: "0.0.0.0",
   port: 6379
