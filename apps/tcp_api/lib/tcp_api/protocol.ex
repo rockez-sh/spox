@@ -2,6 +2,7 @@ defmodule TcpApi.Protocol do
   require Logger
   require Poison
   alias Core.Config, as: ConfigSVC
+  alias Core.CollectionService
   def process("val:cog:" <> keypair ) do
     [namespace, name] = String.split(keypair, ".")
     case ConfigSVC.get_value(name, namespace) do
@@ -14,6 +15,14 @@ defmodule TcpApi.Protocol do
     [namespace, name] = String.split(keypair, ".")
     case ConfigSVC.get_version(name, namespace) do
       {:ok, nil} -> "can't find cog version for #{namespace}.#{name}" |> reply(:not_found)
+      {:ok, data} -> reply(data)
+    end
+  end
+
+  def process("ver:col:" <> keypair ) do
+    [namespace, name] = String.split(keypair, ".")
+    case CollectionService.get_version(name, namespace) do
+      {:ok, nil} -> "can't find col version for #{namespace}.#{name}" |> reply(:not_found)
       {:ok, data} -> reply(data)
     end
   end
