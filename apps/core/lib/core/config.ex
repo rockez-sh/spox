@@ -3,6 +3,7 @@ defmodule Core.Config do
   alias Core.Repo
   alias Core.Model.Config, as: ConfigModel
   alias Core.Model.Schema, as: SchemaConfig
+  alias Core.CollectionService
   alias Core.Redis
   import Ecto.Query
   import Core.Utils
@@ -10,7 +11,8 @@ defmodule Core.Config do
 
   def create(attrs \\ %{}) do
     case multi()
-      |> run(:validate_schema, &validate_schema/1, attrs)
+      |> run(:assign_collection, &assign_collection/1, attrs)
+      |> run(:validate_schema, &validate_schema/1)
       |> run(:define_default, &define_default_value/1)
       |> run(:define_changeset, &define_changeset/1) do
       {:ok, %{define_changeset: changeset}} ->
@@ -104,7 +106,7 @@ defmodule Core.Config do
     end
   end
 
-  defp validate_schema(%{schema: schema_name, value: value} = attrs) do
+  defp validate_schema(%{assign_collection: %{schema: schema_name, value: value} = attrs } ) do
     case from(s in SchemaConfig, where: s.name == ^schema_name) |>Repo.one() do
       nil -> {:error, :schema_not_found}
       schema ->
@@ -120,10 +122,21 @@ defmodule Core.Config do
         end
     end
   end
+  defp validate_schema(%{assign_collection: attrs}), do: {:ok, attrs}
 
-  defp validate_schema(attrs) do
-    {:ok, attrs}
+  defp assign_collection(%{collection: collection_name, namespace: namespace} = attrs) do
+    case collection_name do
+      nil -> attrs
+      "" -> attrs
+      _ ->
+        case CollectionService.find(collection_name, namespace) do
+          nil -> {:error, "collection not found"}
+          cs -> {:ok, attrs |> Map.put(:collection_id, cs.id) }
+        end
+    end
   end
+
+  defp assign_collection(attrs), do: {:ok, attrs}
 
   defp copy_to_redis(changeset) do
     commands = [

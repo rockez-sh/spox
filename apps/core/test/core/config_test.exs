@@ -156,4 +156,30 @@ defmodule Core.ConfigTest do
       assert_called Core.Redis.transaction_pipeline(commands)
     end
   end
+
+  describe "with collection" do
+    setup do
+      col_name = "sample_collection"
+      {:ok, col_cs} = Fixture.col_valid
+      |> Map.put(:name, col_name)
+      |> Core.CollectionService.create
+
+      {:ok, col_name: col_name, col_cs: col_cs }
+    end
+    test "it should link to collection id", context do
+      fixture = Fixture.cog_string_valid
+      |> Map.put(:collection, context[:col_name])
+
+      {:ok, cs } = fixture |> Config.create
+
+      assert cs.collection_id == context[:col_cs].id
+    end
+
+    test "collection not found", context do
+      fixture = Fixture.cog_string_valid
+      |> Map.put(:collection, "not_exist_collection")
+      {:error, :assign_collection, m } = fixture |> Config.create
+      assert m == "collection not found"
+    end
+  end
 end
