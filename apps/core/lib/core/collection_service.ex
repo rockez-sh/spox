@@ -1,14 +1,13 @@
 defmodule Core.CollectionService do
   alias Core.Model.Collection
+  alias Core.Model.Config
   alias Core.Repo
   alias Ecto.Multi
   alias Core.Redis
   import Ecto.Query
 
-  import Core.Utils
-
   def create(attrs \\ %{}) do
-    result = case find(attrs |> Map.fetch!(:name), attrs |> Map.fetch!(:namespace)) do
+    case find(attrs |> Map.fetch!(:name), attrs |> Map.fetch!(:namespace)) do
       nil -> %Collection{}
       cs -> cs
     end
@@ -35,12 +34,43 @@ defmodule Core.CollectionService do
     |> Repo.one
   end
 
+  def get_version(name, namespace \\ "default") do
+    case Redis.command(:get, "col:ver:#{namespace}.#{name}") do
+      {:ok, nil} ->
+        case find(name, namespace) do
+          nil -> {:ok, nil}
+          cs ->
+            case copy_to_redis(cs) do
+              {:ok, _} -> {:ok, cs.version}
+              {:error, message} -> {:error, message} 
+            end
+            {:ok, cs.version}
+        end
+      {:ok, val} ->
+        {intVer, _} = Integer.parse(val)
+        {:ok, intVer}
+    end
+  end
+
   defp copy_to_redis(_repo, %{updated_col: col, cog: cog}) do
     commands = [
-      ["SET", "ver:col:#{col.namespace}.#{col.name}", col.version],
-      ["HSET", "val:col:#{col.namespace}.#{col.name}", cog.name, cog.value]
+      ["SET", "col:ver:#{col.namespace}.#{col.name}", col.version],
+      ["HSET", "col:val:#{col.namespace}.#{col.name}", cog.name, cog.value]
     ]
     case Redis.transaction_pipeline(commands) do
+      {:ok, _} -> {:ok, col}
+      {:error, message} -> {:error, message}
+    end
+  end
+
+  defp copy_to_redis(col) do
+    cmds = [["SET", "col:ver:#{col.namespace}.#{col.name}", col.version]]
+    cog_cmds = Config
+     |> where([c], c.collection_id == ^col.id)
+     |> Repo.all
+     |> Enum.map(fn(cog) -> ["HSET", "col:val:#{col.namespace}.#{col.name}", cog.name, cog.value] end)
+    cmds = cmds ++ cog_cmds
+    case Redis.transaction_pipeline(cmds) do
       {:ok, _} -> {:ok, col}
       {:error, message} -> {:error, message}
     end

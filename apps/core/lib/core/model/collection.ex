@@ -1,5 +1,6 @@
 defmodule Core.Model.Collection do
   use Ecto.Schema
+  alias Core.Model.Config
   import Ecto.Changeset
 
   @primary_key {:id, :binary_id, autogenerate: true}
@@ -8,6 +9,7 @@ defmodule Core.Model.Collection do
     field :version, :integer
     field :namespace, :string
     field :desc, :string
+    has_many :configs, Config
     timestamps()
   end
 

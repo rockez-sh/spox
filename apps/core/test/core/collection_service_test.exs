@@ -48,13 +48,44 @@ defmodule Core.CollectionServiceTest do
       assert ncol.version > col.version
     end
 
-    @tag focus: true
     test "make copy to redis", %{col: col, cog: cog} do
       with_mock Redis, [:passthrough], []  do
         {:ok, ncol } = touch(Repo, col, cog)
         commands = [
-          ["SET", "ver:col:#{col.namespace}.#{col.name}", ncol.version],
-          ["HSET", "val:col:#{col.namespace}.#{col.name}", cog.name, cog.value]
+          ["SET", "col:ver:#{col.namespace}.#{col.name}", ncol.version],
+          ["HSET", "col:val:#{col.namespace}.#{col.name}", cog.name, cog.value]
+        ]
+        assert_called Redis.transaction_pipeline(commands)
+      end
+    end
+  end
+
+  describe "get_version" do
+    setup do
+      {:ok, col} = Fixture.col_valid |> Map.put(:version, 0) |> create
+      {:ok, cog} = %Model.Config{}
+        |> Model.Config.changeset(Fixture.cog_string_valid |> Map.put(:version, 0) |> Map.put(:latest, true) |> Map.put(:collection_id, col.id))
+        |> Repo.insert
+      {:ok, col} = touch(Repo, col, cog)
+      {:ok, col: col, cog: cog}
+    end
+
+    test 'should get version from redis',%{col: col} do
+      with_mock Redis, [:passthrough], []  do
+        {:ok, version} = get_version(col.name, col.namespace)
+        assert version == col.version
+        assert_called Redis.command(:get, "col:ver:#{col.namespace}.#{col.name}")
+      end
+    end
+
+    test 'when copy not present in redis', %{col: col, cog: cog} do
+      Redis.command(["FLUSHALL"])
+      with_mock Redis, [:passthrough], []  do
+        {:ok, version} = get_version(col.name, col.namespace)
+        assert version == col.version
+        commands = [
+          ["SET", "col:ver:#{col.namespace}.#{col.name}", col.version],
+          ["HSET", "col:val:#{col.namespace}.#{col.name}", cog.name, cog.value]
         ]
         assert_called Redis.transaction_pipeline(commands)
       end
