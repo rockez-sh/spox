@@ -35,7 +35,7 @@ config :core, Core.Repo,
   database: "spock_db",
   username: "root",
   password: "sqlsecret",
-  hostname: "0.0.0.0",
+  hostname: "localhost",
   port: 3306
 
 config :core,

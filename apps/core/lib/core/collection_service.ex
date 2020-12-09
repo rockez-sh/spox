@@ -13,6 +13,12 @@ defmodule Core.CollectionService do
     |> Repo.insert_or_update
   end
 
+  def touch(repo, cs) do
+    cs
+    |> Collection.changeset(%{version: DateTime.utc_now |> DateTime.to_unix(:millisecond)})
+    |> repo.insert_or_update
+  end
+
   def find(name, namespace \\ "default") do
     Collection
     |> where([c], c.name == ^name)

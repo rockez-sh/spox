@@ -18,6 +18,7 @@ defmodule Core.Config do
       {:ok, %{define_changeset: changeset}} ->
         case Multi.new()
           |> Multi.insert(:saving_cog, changeset)
+          |> Multi.run(:promote_collection, &promote_collection/2)
           |> Multi.run(:old_cog, &promote_latest/2)
           |> Multi.run(:redis_copy, &copy_to_redis/2)
           |> Repo.transaction() do
@@ -103,6 +104,18 @@ defmodule Core.Config do
       {:error, error} -> {:error, error}
       {1, nil} -> {:ok, changeset}
       _ -> {:ok, changeset}
+    end
+  end
+
+  defp promote_collection(repo, %{saving_cog: changeset} ) do
+    case changeset.collection_id do
+      nil -> {:ok, :ok}
+      cid ->
+        col_cs = Core.Model.Collection |> Repo.get(cid)
+        case CollectionService.touch(repo, col_cs) do
+          {:ok, cs} -> {:ok, cs}
+          {:error, message} -> {:error, message}
+        end
     end
   end
 

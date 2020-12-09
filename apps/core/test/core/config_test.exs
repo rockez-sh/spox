@@ -166,20 +166,29 @@ defmodule Core.ConfigTest do
 
       {:ok, col_name: col_name, col_cs: col_cs }
     end
-    test "it should link to collection id", context do
+    test "it should link to collection id", %{col_cs: col_cs, col_name: col_name} do
       fixture = Fixture.cog_string_valid
-      |> Map.put(:collection, context[:col_name])
+      |> Map.put(:collection, col_name)
 
       {:ok, cs } = fixture |> Config.create
 
-      assert cs.collection_id == context[:col_cs].id
+      assert cs.collection_id == col_cs.id
     end
 
-    test "collection not found", context do
+    test "collection not found" do
       fixture = Fixture.cog_string_valid
       |> Map.put(:collection, "not_exist_collection")
       {:error, :assign_collection, m } = fixture |> Config.create
       assert m == "collection not found"
+    end
+
+    test "it should promote new version of collection", %{col_cs: col_cs, col_name: col_name} do
+      fixture = Fixture.cog_string_valid
+      |> Map.put(:collection, col_name)
+
+      {:ok, cs } = fixture |> Config.create
+      col = Core.CollectionService.find(col_name, cs.namespace)
+      assert col.version > col_cs.version
     end
   end
 end
