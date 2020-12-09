@@ -1,4 +1,3 @@
-# SpockUmb
+# Spox
 
-**TODO: Add description**
-
+An Over-engineered Distributed Global Variable application
