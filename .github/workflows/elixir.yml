@@ -11,20 +11,15 @@ jobs:
 
     name: Build and test
     runs-on: ubuntu-latest
-
+    services:
+      mysql:
+        image: mysql:5.7
+        env:
+          MYSQL_ROOT_PASSWORD: sqlsecret
+      redis:
+        image: redis:4.0.1
     steps:
     - uses: actions/checkout@v2
-    - name: Shutdown Ubuntu MySQL
-      run: sudo service mysql stop
-    - name: Setup MySQL
-      uses: mirromutth/mysql-action@v1.1
-      with:
-        mysql root_password: sqlsecret
-        mysql database: spock_db_test
-        mysql user: root
-        mysql password: spock_db_test
-    - name: Setup Redis
-      uses: zhulik/redis-action@1.1.0
     - name: Set up Elixir
       uses: actions/setup-elixir@v1
       with:
@@ -42,6 +37,9 @@ jobs:
       env:
         MIX_ENV: test
       run: |
+        mv apps/core/config/test.exs apps/core/config/test.exs.bak
+        mv apps/core/config/test_ci.exs apps/core/config/test.exs
+        mix ecto.create
         mix ecto.migrate
     - name: Run tests
       run: |
