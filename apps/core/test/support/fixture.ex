@@ -52,4 +52,12 @@ defmodule Core.Fixture do
       schema: "sample_schema"
     }
   end
+
+  def col_valid do
+    %{
+      name: "coll_config_a",
+      namespace: "default",
+      desc: "a collection config for a"
+    }
+  end
 end
