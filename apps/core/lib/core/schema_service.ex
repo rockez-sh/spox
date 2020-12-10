@@ -20,6 +20,34 @@ defmodule Core.SchemaService do
     |> Repo.one
   end
 
+  def search(query, page \\ 1, per_page \\ 10)
+
+  def search(%Ecto.Query{} = query, page, per_page) do
+    page_offset = (page-1) * per_page
+    query
+    |> limit(^per_page)
+    |> offset(^page_offset)
+    |> Repo.all
+  end
+
+  def search(term, page, per_page) when is_map(term) do
+    term_search = map_to_keyword(term, [:name, :namespace])
+    if length(term_search) > 0 do
+      Schema
+      |> where([c], ^term_search)
+      |> search(page, per_page)
+    else
+      []
+    end
+  end
+
+  def search(term, page, per_page) when is_binary(term) do
+    search_term = "%#{term}%"
+    Schema
+    |> where([c], like(c.name , ^search_term))
+    |> search(page, per_page)
+  end
+
   def as_json(schema) do
     %{name: schema.name, value: schema.value}
   end
