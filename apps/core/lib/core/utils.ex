@@ -38,4 +38,9 @@ defmodule Core.Utils do
     end
   end
 
+  def map_to_keyword(map, keys \\ []) do
+    Enum.filter(map, fn({k, value}) -> Enum.any?(keys, fn(key)-> k == key end) end)
+    |> Enum.map(fn({key, value}) -> {key, value} end)
+  end
+
 end

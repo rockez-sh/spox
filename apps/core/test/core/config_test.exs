@@ -191,4 +191,33 @@ defmodule Core.ConfigTest do
       assert col.version > col_cs.version
     end
   end
+
+  describe "search" do
+    setup do
+      fixture = Fixture.cog_string_valid
+      {:ok, cs} = fixture |> ConfigService.create
+      {:ok, cs: cs,fixture: fixture}
+    end
+
+    test "search through name", %{cs: cs} do
+      result = cs.name |> ConfigService.search
+      assert Enum.any?(result, fn(i) -> i.id == cs.id end)
+    end
+
+    test "search specific field", %{cs: cs} do
+      result = %{name: cs.name} |> ConfigService.search
+      assert Enum.any?(result, fn(i) -> i.id == cs.id end)
+
+      result = %{name: cs.name, namespace: cs.namespace} |> ConfigService.search
+      assert Enum.any?(result, fn(i) -> i.id == cs.id end)
+
+      result = %{name: cs.name, namespace: "non_exist_namespace"} |> ConfigService.search
+      assert length(result) == 0
+    end
+
+    test "when passed unknown attribute won't fail", %{cs: cs} do
+      result = %{attribute_that_uknown: cs.name} |> ConfigService.search
+      assert length(result) == 0
+    end
+  end
 end
