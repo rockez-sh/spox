@@ -1,7 +1,7 @@
 defmodule TcpApi.Protocol do
   require Logger
   require Poison
-  alias Core.Config, as: ConfigSVC
+  alias Core.ConfigService, as: ConfigSVC
   alias Core.CollectionService
   def process("val:cog:" <> keypair ) do
     [namespace, name] = String.split(keypair, ".")

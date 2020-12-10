@@ -1,4 +1,4 @@
-defmodule Core.Config do
+defmodule Core.ConfigService do
   alias Ecto.Multi
   alias Core.Repo
   alias Core.Model.Config, as: ConfigModel

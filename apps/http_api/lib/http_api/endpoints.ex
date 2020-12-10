@@ -6,7 +6,7 @@ defmodule HttpApi.Endpoints do
   plug :dispatch
 
 
-  alias Core.Config, as: ConfigSVC
+  alias Core.ConfigService, as: ConfigSVC
   alias Core.SchemaService, as: SchemaSVC
   post "/api/cog" do
     case conn.body_params

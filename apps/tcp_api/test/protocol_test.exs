@@ -2,7 +2,7 @@ defmodule TcpApi.ProtocolTest do
   use ExUnit.Case, async: true
   use Core.DataCase
   alias Core.Fixture
-  alias Core.Config , as: ConfigSVC
+  alias Core.ConfigService , as: ConfigSVC
   import  TcpApi.Protocol
 
   test "cog:ver" do
