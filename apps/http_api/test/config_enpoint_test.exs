@@ -4,13 +4,13 @@ defmodule HttpApi.ConfigEnpointTest do
   use Plug.Test
   import HttpApi.TestUtils
   alias Core.Fixture
-  alias Core.ConfigService , as: ConfigSVC
+  alias Core.ConfigService
 
   test "post /api/cog" do
     fixture = Fixture.cog_string_valid
     {status, cog_json } = make_call(:post, "/api/cog", %{cog: fixture})
     assert status == 200
-    created_cog = ConfigSVC.find(fixture |> Map.fetch!(:name))
+    created_cog = ConfigService.find(fixture |> Map.fetch!(:name))
     assert cog_json == created_cog |> Core.ConfigService.as_json |> Poison.encode!
   end
 

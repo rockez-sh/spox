@@ -6,15 +6,15 @@ defmodule HttpApi.Endpoints do
   plug :dispatch
 
 
-  alias Core.ConfigService, as: ConfigSVC
+  alias Core.ConfigService
   alias Core.SchemaService, as: SchemaSVC
   post "/api/cog" do
     case conn.body_params
     |> Map.fetch!("cog")
     |> Utils.atomize_map
-    |> ConfigSVC.create do
+    |> ConfigService.create do
       {:ok, cs} ->
-        {:ok, cs |> ConfigSVC.as_json |> Poison.encode!}
+        {:ok, cs |> ConfigService.as_json |> Poison.encode!}
       {:error, :validate_schema, error} ->
         {:malformed_data, response_error(:schema_error, error) |> Poison.encode! }
       _ -> {:server_error, "unknow error"}
