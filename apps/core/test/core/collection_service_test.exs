@@ -91,4 +91,29 @@ defmodule Core.CollectionServiceTest do
       end
     end
   end
+  describe "search" do
+    setup do
+      fixture = Fixture.col_valid
+      {:ok, cs} = fixture |> create
+      {:ok, cs: cs,fixture: fixture}
+    end
+
+    test "search through name", %{cs: cs} do
+      result = cs.name |> search
+      assert Enum.any?(result, fn(i) -> i.id == cs.id end)
+    end
+
+    test "search specific field", %{cs: cs} do
+      result = %{name: cs.name} |> search
+      assert Enum.any?(result, fn(i) -> i.id == cs.id end)
+
+      result = %{name: cs.name, namespace: "non_exist_namespace"} |> search
+      assert length(result) == 0
+    end
+
+    test "when passed unknown attribute won't fail", %{cs: cs} do
+      result = %{attribute_that_uknown: cs.name} |> search
+      assert length(result) == 0
+    end
+  end
 end
