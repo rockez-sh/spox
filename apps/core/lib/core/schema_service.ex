@@ -25,6 +25,7 @@ defmodule Core.SchemaService do
   def search(%Ecto.Query{} = query, page, per_page) do
     page_offset = (page-1) * per_page
     query
+    |> select([:name, :id])
     |> limit(^per_page)
     |> offset(^page_offset)
     |> Repo.all
@@ -61,7 +62,7 @@ defmodule Core.SchemaService do
   end
 
   defp insert_update_schema(attrs) do
-    result = case find(attrs |> Map.fetch!(:name)) do
+    case find(attrs |> Map.fetch!(:name)) do
       nil -> %Schema{}
       cs -> cs
     end

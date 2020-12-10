@@ -58,6 +58,7 @@ defmodule Core.CollectionService do
   def search(%Ecto.Query{} = query, page, per_page) do
     page_offset = (page-1) * per_page
     query
+    |> select([:name, :desc, :namespace, :version, :id])
     |> limit(^per_page)
     |> offset(^page_offset)
     |> Repo.all
