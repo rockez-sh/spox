@@ -94,12 +94,15 @@ defmodule Core.CollectionServiceTest do
   describe "search" do
     setup do
       fixture = Fixture.col_valid
-      {:ok, cs} = fixture |> create
+      {:ok, cs} = fixture |> Map.put(:desc, "some description that are worth to read") |> create
       {:ok, cs: cs,fixture: fixture}
     end
 
-    test "search through name", %{cs: cs} do
+    test "search through name & desc", %{cs: cs} do
       result = cs.name |> search
+      assert Enum.any?(result, fn(i) -> i.id == cs.id end)
+
+      result = "worth" |> search
       assert Enum.any?(result, fn(i) -> i.id == cs.id end)
     end
 

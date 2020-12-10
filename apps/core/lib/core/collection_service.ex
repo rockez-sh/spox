@@ -78,6 +78,7 @@ defmodule Core.CollectionService do
     search_term = "%#{term}%"
     Collection
     |> where([c], like(c.name , ^search_term))
+    |> or_where([c],  like(c.desc , ^search_term))
     |> search(page, per_page)
   end
 
