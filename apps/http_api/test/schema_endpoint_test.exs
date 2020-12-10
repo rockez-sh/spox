@@ -4,15 +4,15 @@ defmodule HttpApi.SchemaEndpointTest do
   use Plug.Test
   import HttpApi.TestUtils
   alias Core.Fixture
-  alias Core.SchemaService, as: SchemaSVC
+  alias Core.SchemaService
   import Ecto.Query
 
   test "post /api/sch" do
     fixture = Fixture.schema_object
     {status, sch_json } = make_call(:post, "/api/sch", %{sch: fixture})
     assert status == 200
-    created_sch = SchemaSVC.find(fixture |> Map.fetch!(:name))
-    assert sch_json == created_sch |> SchemaSVC.as_json |> Poison.encode!
+    created_sch = SchemaService.find(fixture |> Map.fetch!(:name))
+    assert sch_json == created_sch |> SchemaService.as_json |> Poison.encode!
   end
 
   test "post /api/sch upserting" do

@@ -7,7 +7,7 @@ defmodule HttpApi.Endpoints do
 
 
   alias Core.ConfigService
-  alias Core.SchemaService, as: SchemaSVC
+  alias Core.SchemaService
   post "/api/cog" do
     case conn.body_params
     |> Map.fetch!("cog")
@@ -25,10 +25,10 @@ defmodule HttpApi.Endpoints do
     case conn.body_params
     |> Map.fetch!("sch")
     |> Utils.atomize_map
-    |> SchemaSVC.create do
+    |> SchemaService.create do
       {:ok, schema} ->
         {:ok, schema
-        |> SchemaSVC.as_json
+        |> SchemaService.as_json
         |> Poison.encode!}
       {:error, stage, message} ->
         {:malformed_data, response_error(:create_schema, stage, message)
