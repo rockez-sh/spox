@@ -48,6 +48,17 @@ defmodule HttpApi.Endpoints do
     end |> handle_response(conn)
   end
 
+  post "/api/search" do
+    case conn.body_params
+    |> Map.fetch!("keyword")
+    |> CollectionService.search do
+      result ->
+        result = result |> CollectionService.as_json
+        {:ok, %{data: %{collections: result}} |> Poison.encode! }
+      {:error, _} -> {:server_error, 0}
+    end |> handle_response(conn)
+  end
+
 
   match _ do
     send_resp(conn, 404, "Page not found")

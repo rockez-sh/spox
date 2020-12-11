@@ -35,12 +35,15 @@ defmodule Core.CollectionService do
     |> Repo.one
   end
 
-  def as_json(changeset) do
+  def as_json(%Collection{} = changeset) do
     %{
       version: changeset.version,
       name: changeset.name,
       desc: changeset.desc
     }
+  end
+  def as_json([%Collection{}] = changesets) do
+     changesets |> Enum.map(&as_json/1)
   end
 
   def get_version(name, namespace \\ "default") do
