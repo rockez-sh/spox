@@ -5,9 +5,11 @@ defmodule HttpApi.Endpoints do
   plug Plug.Parsers, parsers: [:json], pass: ["application/json"], json_decoder: Poison
   plug :dispatch
 
-
   alias Core.ConfigService
   alias Core.SchemaService
+  alias Core.CollectionService
+  alias Core.Utils.EctoError
+
   post "/api/cog" do
     case conn.body_params
     |> Map.fetch!("cog")
@@ -36,6 +38,16 @@ defmodule HttpApi.Endpoints do
     end |> handle_response(conn)
   end
 
+  post "/api/col" do
+    case conn.body_params
+    |> Map.fetch!("col")
+    |> Utils.atomize_map
+    |> CollectionService.create do
+      {:ok, collection} -> {:ok, collection |> CollectionService.as_json |> Poison.encode!}
+      {:error, cs} -> {:malformed_data, response_error(:create_col, cs) |> Poison.encode!}
+    end |> handle_response(conn)
+  end
+
 
   match _ do
     send_resp(conn, 404, "Page not found")
@@ -54,6 +66,10 @@ defmodule HttpApi.Endpoints do
       end
 
     conn |> send_resp(code, message)
+  end
+
+  defp response_error(:create_col, %Ecto.Changeset{} = cs) do
+    %{success: false, errors: cs |> EctoError.mapper()}
   end
 
   defp response_error(:create_cog, :validate_schema, :schema_not_found) do

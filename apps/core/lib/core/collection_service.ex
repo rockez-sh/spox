@@ -35,6 +35,14 @@ defmodule Core.CollectionService do
     |> Repo.one
   end
 
+  def as_json(changeset) do
+    %{
+      version: changeset.version,
+      name: changeset.name,
+      desc: changeset.desc
+    }
+  end
+
   def get_version(name, namespace \\ "default") do
     case Redis.command(:get, "col:ver:#{namespace}.#{name}") do
       {:ok, nil} ->
