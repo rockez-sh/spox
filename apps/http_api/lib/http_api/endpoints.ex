@@ -15,8 +15,8 @@ defmodule HttpApi.Endpoints do
     |> ConfigService.create do
       {:ok, cs} ->
         {:ok, cs |> ConfigService.as_json |> Poison.encode!}
-      {:error, :validate_schema, error} ->
-        {:malformed_data, response_error(:schema_error, error) |> Poison.encode! }
+      {:error, stage, error} ->
+        {:malformed_data, response_error(:create_cog, stage, error) |> Poison.encode! }
       _ -> {:server_error, "unknow error"}
     end |> handle_response(conn)
   end
@@ -56,17 +56,18 @@ defmodule HttpApi.Endpoints do
     conn |> send_resp(code, message)
   end
 
-  defp response_error(:schema_error, :schema_not_found) do
+  defp response_error(:create_cog, :validate_schema, :schema_not_found) do
     %{success: false, errors: %{schema: "not found"}}
   end
 
-  defp response_error(:schema_error, errors) when is_list(errors) do
+  defp response_error(:create_cog, :validate_schema, errors) when is_list(errors) do
     %{success: false, schema_errors: errors |> schema_errors_to_list}
   end
 
   defp response_error(:create_schema, :validate_schema, message) do
     %{success: false, errors: %{value: message}}
   end
+
   defp response_error(:create_schema, :parsed_json, message) do
     %{success: false, errors: %{value: message}}
   end
