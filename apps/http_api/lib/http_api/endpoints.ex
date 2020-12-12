@@ -50,10 +50,12 @@ defmodule HttpApi.Endpoints do
 
   post "/api/search" do
     params = conn.body_params |> Utils.atomize_map
-    case params
-    |> search(CollectionService) do
+    case %{}
+    |> search(params, CollectionService, :collections)
+    |> search(params, ConfigService, :configs)
+    |> search(params, SchemaService, :schemas) do
       {:ok, result} ->
-        {:ok, %{data: %{collections: result}} |> Poison.encode! }
+        {:ok, %{data: result} |> Poison.encode! }
       {:error, _} -> {:server_error, 0}
     end |> handle_response(conn)
   end
@@ -63,15 +65,21 @@ defmodule HttpApi.Endpoints do
     send_resp(conn, 404, "Page not found")
   end
 
-  defp search(params, service) do
-    case params |> service.search do
-      result when is_list(result) ->
-        {:ok, result |> service.as_json }
-      {:error, message} -> {:error, message}
-      _ -> {:ok, []}
-    end
+  defp search({:ok, result}, params, service, attr_name) do
+    search(result, params, service, attr_name)
+  end
+  defp search({:error, message}, _, _, _) do
+    {:error, message}
   end
 
+  defp search(chain_result, params, service, attr_name) when is_map(chain_result) do
+    case params |> service.search do
+      result when is_list(result) ->
+        {:ok, Map.put(chain_result, attr_name, result |> service.as_json) }
+      {:error, message} -> {:error, message}
+      _ -> {:ok, chain_result}
+    end
+  end
   defp handle_response(response, conn) do
 
     # The service will always return a response that follow this pattern: {:code, :response}.

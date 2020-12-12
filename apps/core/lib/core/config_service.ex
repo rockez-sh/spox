@@ -33,12 +33,26 @@ defmodule Core.ConfigService do
     end
   end
 
-  def as_json(changeset) do
+  def as_json(%ConfigModel{} = changeset) do
     %{
+      id: changeset.id,
       version: changeset.version,
       value: changeset.value,
       name: changeset.name,
       schema: changeset |> schema_name!
+    }
+  end
+
+  def as_json([%ConfigModel{}] = changesets) do
+     changesets |> Enum.map(&as_json_search_result/1)
+  end
+  def as_json([]), do: []
+
+  defp as_json_search_result(changeset) do
+    %{
+      id: changeset.id,
+      version: changeset.version,
+      name: changeset.name
     }
   end
 

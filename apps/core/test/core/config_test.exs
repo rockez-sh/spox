@@ -85,7 +85,7 @@ defmodule Core.ConfigTest do
     sch = Model.Schema |> first |> Repo.one
     {:ok, cfg} = Fixture.cog_object_valid
     |> ConfigService.create
-   assert %{name: cfg.name, version: cfg.version, value: cfg.value, schema: sch.name} == cfg |> ConfigService.as_json
+   assert %{name: cfg.name, version: cfg.version, value: cfg.value, schema: sch.name, id: cfg.id} == cfg |> ConfigService.as_json
   end
 
   test "find" do

@@ -37,6 +37,7 @@ defmodule Core.CollectionService do
 
   def as_json(%Collection{} = changeset) do
     %{
+      id: changeset.id,
       version: changeset.version,
       name: changeset.name,
       desc: changeset.desc

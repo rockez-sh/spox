@@ -54,9 +54,20 @@ defmodule Core.SchemaService do
     end
   end
 
-  def as_json(schema) do
-    %{name: schema.name, value: schema.value}
+  def as_json(%Schema{} =schema) do
+    %{id: schema.id, name: schema.name, value: schema.value}
   end
+
+  def as_json([%Schema{}] = schemas) do
+    schemas |> Enum.map(&as_json_search_result/1)
+  end
+
+  def as_json([]), do: []
+
+  defp as_json_search_result(%Schema{} = schema) do
+    %{id: schema.id, name: schema.name}
+  end
+
 
   defp validate_schema(%{parsed_json: parsed_json}) do
     try do
