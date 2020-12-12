@@ -90,21 +90,26 @@ defmodule Core.ConfigService do
   end
 
   def search(term, page, per_page) when is_map(term) do
-    term_search = map_to_keyword(term, [:name, :namespace])
-    if length(term_search) > 0 do
-      ConfigModel
-      |> where([c], ^term_search)
-      |> search(page, per_page)
-    else
-      []
+    keyword = case Map.fetch(term, :keyword) do
+      {:ok, v} -> "%#{v}%"
+      _ -> nil
     end
-  end
+    term_search = map_to_keyword(term, [:name, :namespace])
 
-  def search(term, page, per_page) when is_binary(term) do
-    search_term = "%#{term}%"
-    ConfigModel
-    |> where([c], like(c.name , ^search_term))
-    |> search(page, per_page)
+    unless length(term_search) > 0 or keyword do
+      []
+    else
+      ConfigModel
+      |> pif(length(term_search) > 0, fn(x) ->
+        x
+        |> where([c], ^term_search)
+      end)
+      |> pif(keyword != nil, fn(x) ->
+        x
+        |> where([c], like(c.name, ^keyword))
+      end)
+      |> search(page, per_page)
+    end
   end
 
 

@@ -200,7 +200,7 @@ defmodule Core.ConfigTest do
     end
 
     test "search through name", %{cs: cs} do
-      result = cs.name |> ConfigService.search
+      result = %{keyword: cs.name} |> ConfigService.search
       assert Enum.any?(result, fn(i) -> i.id == cs.id end)
     end
 
