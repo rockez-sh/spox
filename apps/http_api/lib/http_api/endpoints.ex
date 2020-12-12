@@ -49,11 +49,10 @@ defmodule HttpApi.Endpoints do
   end
 
   post "/api/search" do
-    case conn.body_params
-    |> Map.fetch!("keyword")
-    |> CollectionService.search do
-      result ->
-        result = result |> CollectionService.as_json
+    params = conn.body_params |> Utils.atomize_map
+    case params
+    |> search(CollectionService) do
+      {:ok, result} ->
         {:ok, %{data: %{collections: result}} |> Poison.encode! }
       {:error, _} -> {:server_error, 0}
     end |> handle_response(conn)
@@ -62,6 +61,15 @@ defmodule HttpApi.Endpoints do
 
   match _ do
     send_resp(conn, 404, "Page not found")
+  end
+
+  defp search(params, service) do
+    case params |> service.search do
+      result when is_list(result) ->
+        {:ok, result |> service.as_json }
+      {:error, message} -> {:error, message}
+      _ -> {:ok, []}
+    end
   end
 
   defp handle_response(response, conn) do
