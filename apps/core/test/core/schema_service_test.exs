@@ -19,7 +19,7 @@ defmodule Core.SchemaServiceTest do
     end
 
     test "search through name", %{cs: cs} do
-      result = cs.name |> search
+      result = %{keyword: cs.name} |> search
       assert Enum.any?(result, fn(i) -> i.id == cs.id end)
     end
 
