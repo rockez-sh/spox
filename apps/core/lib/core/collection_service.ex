@@ -46,6 +46,7 @@ defmodule Core.CollectionService do
   def as_json([%Collection{}] = changesets) do
      changesets |> Enum.map(&as_json/1)
   end
+  def as_json([]), do: []
 
   def get_version(name, namespace \\ "default") do
     case Redis.command(:get, "col:ver:#{namespace}.#{name}") do
