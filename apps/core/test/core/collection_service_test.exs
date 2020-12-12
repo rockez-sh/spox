@@ -99,10 +99,10 @@ defmodule Core.CollectionServiceTest do
     end
 
     test "search through name & desc", %{cs: cs} do
-      result = cs.name |> search
+      result = %{keyword: cs.name} |> search
       assert Enum.any?(result, fn(i) -> i.id == cs.id end)
 
-      result = "worth" |> search
+      result = %{keyword: "worth"} |> search
       assert Enum.any?(result, fn(i) -> i.id == cs.id end)
     end
 

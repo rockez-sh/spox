@@ -43,4 +43,12 @@ defmodule Core.Utils do
     |> Enum.map(fn({key, value}) -> {key, value} end)
   end
 
+  def pif(x, condition, func) do
+    if condition do
+      x |> func.()
+    else
+      x
+    end
+  end
+
 end
