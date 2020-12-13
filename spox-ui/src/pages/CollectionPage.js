@@ -1,12 +1,13 @@
 import {
   Pane,
-  Heading
+  Heading,
+  PropertiesIcon
 } from 'evergreen-ui'
 
 export default function CollectionPage (argument) {
   return (
     <Pane>
-      <Heading size={700}>Collection</Heading>
+      <Heading size={700}><PropertiesIcon/> Collection</Heading>
     </Pane>
   )
 }
