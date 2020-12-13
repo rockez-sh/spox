@@ -1,18 +1,37 @@
-import {Pane, TextInput, Button, Heading} from 'evergreen-ui';
+import {
+  Pane
+} from 'evergreen-ui';
+import {
+  BrowserRouter as Router,
+  Switch,
+  Route,
+} from "react-router-dom";
+
+import HomePage from './pages/HomePage'
+import ConfigPage from './pages/ConfigPage'
+import CollectionPage from './pages/CollectionPage'
+import SchemaPage from './pages/SchemaPage'
 
 function App() {
   return (
-    <div className="App">
-      <Pane display="flex"
-        alignItems="center"
-        justifyContent="center"
-        alignItems="center">
-        <Pane width={700} paddingTop={40}>
-          <Heading size={900} textAlign="center" marginBottom={30} >Spox</Heading>
-          <TextInput width="100%" height={48} placeholder="Start Search your config" />
+    <Router>
+      <div className="App">
+        <Pane display="flex"
+          alignItems="center"
+          justifyContent="center"
+          paddingTop={50}
+          >
+          <Pane width={700}>
+            <Switch>
+              <Route path="/config"><ConfigPage/></Route>
+              <Route path="/collection"><CollectionPage/></Route>
+              <Route path="/schema"><SchemaPage/></Route>
+              <Route path="/"> <HomePage/> </Route>
+            </Switch>
+          </Pane>
         </Pane>
-      </Pane>
-    </div>
+      </div>
+    </Router>
   );
 }
 
