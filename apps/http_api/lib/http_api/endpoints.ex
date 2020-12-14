@@ -40,6 +40,14 @@ defmodule HttpApi.Endpoints do
     end |> handle_response(conn)
   end
 
+  get "/api/sch/:name" do
+    %{"name" => sch_name} = conn.params
+    case SchemaService.find(sch_name) do
+      nil -> {:not_found, %{success: false, message: "cannot find Schema with name #{sch_name}"} |> Poison.encode!}
+      result -> {:ok, %{data: result |> SchemaService.as_json} |> Poison.encode!}
+    end |> handle_response(conn)
+  end
+
   post "/api/col" do
     case conn.body_params
     |> Map.fetch!("col")
