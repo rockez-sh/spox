@@ -6,23 +6,51 @@ import {
   TextareaField,
   Button,
   SavedIcon,
-  SmallCrossIcon
+  SmallCrossIcon,
+  toaster
 } from 'evergreen-ui';
 import JSONInput from 'react-json-editor-ajrm';
 import locale    from 'react-json-editor-ajrm/locale/en';
 import {
-  Link
+  Link,
+  useParams
 } from "react-router-dom";
+import NOTFOUND from './NOT_FOUND';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+
+function raiseError(status){
+  throw new Error(status)
+}
 
 export default function SchemaPage () {
   const [state, setState] = useState({
     saving: false,
     saved: false,
-    persisted: false,
+    loaded: false,
+    notFound: false,
     form_data: { name: null, desc: null, value: '{}'
   }})
+
+  const {name: schemaName} = useParams()
+
+  useEffect(() => {
+    if(!schemaName)
+      return;
+    if(state.loaded)
+      return;
+
+    fetch('http://localhost:5001/api/sch/'+schemaName)
+    .then(resp => resp.ok ? resp.json() : raiseError(resp.status))
+    .then(json =>  setState({...state , form_data: json.data, loaded: true }))
+    .catch(error => {
+      console.log(error.message)
+      if(error.message === "404"){
+        setState({...state, notFound: true, loaded: true})
+      }
+    })
+  });
+
 
   function stateUpdater(attribute) {
     return function(e){
@@ -47,6 +75,9 @@ export default function SchemaPage () {
       setState({...state, saving: false})
     });
   }
+
+  if(state.notFound)
+    return <NOTFOUND/>
 
   return (
     <Pane>

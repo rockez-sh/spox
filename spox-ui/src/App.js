@@ -25,7 +25,7 @@ function App() {
             <Switch>
               <Route path="/config"><ConfigPage/></Route>
               <Route path="/collection"><CollectionPage/></Route>
-              <Route path="/schema"><SchemaPage/></Route>
+              <Route path="/schema/:name?"><SchemaPage/></Route>
               <Route path="/"> <HomePage/> </Route>
             </Switch>
           </Pane>
