@@ -1,8 +1,10 @@
 defmodule HttpApi.Endpoints do
   alias Core.Utils
   use Plug.Router
+  plug CORSPlug
+  plug Plug.Logger, log: :debug
   plug :match
-  plug Plug.Parsers, parsers: [:json], pass: ["application/json"], json_decoder: Poison
+  plug Plug.Parsers, parsers: [:json], json_decoder: Poison
   plug :dispatch
 
   alias Core.ConfigService
@@ -60,6 +62,9 @@ defmodule HttpApi.Endpoints do
     end |> handle_response(conn)
   end
 
+  get "/ping" do
+    send_resp(conn, 200, "PONG")
+  end
 
   match _ do
     send_resp(conn, 404, "Page not found")
