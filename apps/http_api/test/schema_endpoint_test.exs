@@ -1,11 +1,12 @@
 defmodule HttpApi.SchemaEndpointTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case
   use Core.DataCase
   use Plug.Test
   import HttpApi.TestUtils
   alias Core.Fixture
   alias Core.SchemaService
   import Ecto.Query
+  import Mock
 
   test "post /api/sch" do
     fixture = Fixture.schema_object
@@ -70,5 +71,16 @@ defmodule HttpApi.SchemaEndpointTest do
     assert status == 400
     %{"success" =>  false, "errors" => %{"value" => value_error}} = sch_json |> Poison.decode!
     assert value_error == "Invalid JSON Schema"
+  end
+
+  describe "get /api/sch/:name " do
+    test "should find schema" do
+      {:ok, expected_result} = Fixture.schema_object |> SchemaService.create
+      with_mock SchemaService, [:passthrough], [find: fn(_name) -> expected_result end] do
+        {_status, json} = make_call(:get, "/api/sch/#{expected_result.name}", %{})
+        assert_called SchemaService.find(expected_result.name)
+        assert json == %{data: expected_result |> SchemaService.as_json} |> Poison.encode!
+      end
+    end
   end
 end

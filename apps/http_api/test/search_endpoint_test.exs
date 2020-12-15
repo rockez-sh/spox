@@ -7,6 +7,7 @@ defmodule HttpApi.SearchEndpointTest do
   alias Core.CollectionService
   alias Core.SchemaService
   alias Core.ConfigService
+  import Mock
 
   describe "using term" do
     setup do
@@ -54,6 +55,34 @@ defmodule HttpApi.SearchEndpointTest do
       assert length(resp_cols) == 0
       assert length(resp_schema) == 0
       assert resp_cog["id"] == cog.id
+    end
+
+    test 'with scope should only call search for respective scope', %{sch: sch, cog: cog, col: col} do
+      with_mocks [
+          {SchemaService, [:passthrough], []},
+          {ConfigService, [:passthrough], []},
+          {CollectionService, [:passthrough], []}
+        ] do
+        params =  %{scope: "schemas", keyword: sch.name}
+        {_status, json} = make_call(:post, "/api/search", params)
+        assert_called SchemaService.search(params)
+        assert_not_called ConfigService.search(params)
+        assert_not_called CollectionService.search(params)
+       %{"data" => %{"schemas" => [resp_schema|_]}} = json |> Poison.decode!
+        assert resp_schema["id"] == sch.id
+
+        params =  %{scope: "configs", keyword: cog.name}
+        {_status, _json} = make_call(:post, "/api/search", params)
+        assert_not_called SchemaService.search(params)
+        assert_called ConfigService.search(params)
+        assert_not_called CollectionService.search(params)
+
+        params =  %{scope: "collections", keyword: col.name}
+        {_status, _json} = make_call(:post, "/api/search", params)
+        assert_not_called SchemaService.search(params)
+        assert_not_called ConfigService.search(params)
+        assert_called CollectionService.search(params)
+      end
     end
   end
 end

@@ -79,18 +79,26 @@ defmodule HttpApi.Endpoints do
   end
 
   defp search({:ok, result}, params, service, attr_name) do
-    search(result, params, service, attr_name)
+    if params[:scope] && params[:scope] !=  Atom.to_string(attr_name) do
+      {:ok, result}
+    else
+      search(result, params, service, attr_name)
+    end
   end
   defp search({:error, message}, _, _, _) do
     {:error, message}
   end
 
   defp search(chain_result, params, service, attr_name) when is_map(chain_result) do
-    case params |> service.search do
-      result when is_list(result) ->
-        {:ok, Map.put(chain_result, attr_name, result |> service.as_json) }
-      {:error, message} -> {:error, message}
-      _ -> {:ok, chain_result}
+    if params[:scope] && params[:scope] != Atom.to_string(attr_name) do
+      {:ok, chain_result}
+    else
+      case params |> service.search do
+        result when is_list(result) ->
+          {:ok, Map.put(chain_result, attr_name, result |> service.as_json) }
+        {:error, message} -> {:error, message}
+        _ -> {:ok, chain_result}
+      end
     end
   end
   defp handle_response(response, conn) do
