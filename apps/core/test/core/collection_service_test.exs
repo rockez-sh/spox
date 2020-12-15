@@ -1,9 +1,10 @@
 defmodule Core.CollectionServiceTest do
-  use ExUnit.Case, async: false
+  use ExUnit.Case
   alias Core.Fixture
   alias Core.Model
   alias Core.Repo
   alias Core.Redis
+  alias Core.ConfigService
   import Mock
   import Core.CollectionService
   use Core.DataCase
@@ -117,6 +118,49 @@ defmodule Core.CollectionServiceTest do
     test "when passed unknown attribute won't fail", %{cs: cs} do
       result = %{attribute_that_uknown: cs.name} |> search
       assert length(result) == 0
+    end
+  end
+
+  describe "as_json" do
+    setup do
+      {:ok, col} = Fixture.col_valid |> create
+      {:ok, _} = Fixture.cog_string_valid
+      |> Map.put(:collection, col.name)
+      |> ConfigService.create
+
+      {:ok, _} = Fixture.cog_string_valid
+      |> Map.put(:name, "ops_email_receiver")
+      |> Map.put(:collection, col.name)
+      |> ConfigService.create
+      {:ok, col: col}
+    end
+
+    test "display configs", %{col: col} do
+      col = find(col.name, col.namespace)
+      with_mock Redis, [:passthrough], [] do
+        %{configs: configs} = col |> as_json
+        assert length(configs) == 2
+        assert_called Redis.command("hgetall", ["col:val:#{col.namespace}.#{col.name}"])
+      end
+    end
+
+    test "when cache not present", %{col: col} do
+      col = find(col.name, col.namespace)
+      Redis.command(["FLUSHALL"])
+      with_mock Redis, [:passthrough], [] do
+        %{configs: configs} = col |> as_json
+        assert length(configs) == 2
+        assert_called Redis.transaction_pipeline(:_)
+      end
+    end
+
+    test "when col doesn't have any config yet" do
+      {:ok, col} = Fixture.col_valid |> Map.put(:name, "collection_x") |> create
+      with_mock Redis, [:passthrough], [] do
+        %{configs: configs} = col |> as_json
+        assert length(configs) == 0
+        assert_not_called Redis.command("hgetall", ["col:val:#{col.namespace}.#{col.name}"])
+      end
     end
   end
 end

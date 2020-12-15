@@ -6,6 +6,7 @@ defmodule Core.CollectionService do
   alias Core.Redis
   import Ecto.Query
   import Core.Utils
+  require Logger
 
   def create(attrs \\ %{}) do
     case find(attrs |> Map.fetch!(:name), attrs |> Map.fetch!(:namespace)) do
@@ -40,11 +41,20 @@ defmodule Core.CollectionService do
       id: changeset.id,
       version: changeset.version,
       name: changeset.name,
-      desc: changeset.desc
+      desc: changeset.desc,
+      configs: changeset |> configs_as_json
     }
   end
+
   def as_json([%Collection{}] = changesets) do
-     changesets |> Enum.map(&as_json/1)
+     changesets |> Enum.map(fn(changeset)->
+        %{
+          id: changeset.id,
+          version: changeset.version,
+          name: changeset.name,
+          desc: changeset.desc
+        }
+      end)
   end
   def as_json([]), do: []
 
@@ -134,4 +144,36 @@ defmodule Core.CollectionService do
     cs |> Collection.changeset(attrs)
   end
 
+  defp configs_as_json(col) do
+    if col.version == 0 do
+      []
+    else
+      case Redis.command("hgetall", ["col:val:#{col.namespace}.#{col.name}"]) do
+        {:ok, result} when length(result) > 0 ->
+          result
+          |> Enum.chunk_every(2)
+          |> Enum.map(&config_as_json/1)
+        _ ->
+          Logger.warn("Fail to fetch Redis cache for #{col.namespace}.#{col.name}")
+          case copy_to_redis(col) do
+            {:ok, _} -> configs_as_json(col)
+            {:error, message} -> raise message
+          end
+      end
+    end
+  end
+
+  defp config_as_json(%Config{} =cog) do
+    %{
+      name: cog.name,
+      value: cog.value
+    }
+  end
+
+  defp config_as_json([name, value]) do
+    %{
+      name: name,
+      value: value
+    }
+  end
 end

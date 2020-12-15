@@ -34,7 +34,6 @@ defmodule HttpApi.CollectionEnpointTest do
     with_mock CollectionService, [:passthrough], [] do
       {_status, json} = make_call(:get, "/api/col/#{expected_result.namespace}/#{expected_result.name}", %{})
       assert_called CollectionService.find(expected_result.name, expected_result.namespace)
-      json |> IO.puts
       assert json == %{data: expected_result |> CollectionService.as_json} |> Poison.encode!
     end
   end
