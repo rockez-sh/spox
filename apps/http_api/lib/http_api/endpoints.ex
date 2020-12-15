@@ -25,6 +25,16 @@ defmodule HttpApi.Endpoints do
     end |> handle_response(conn)
   end
 
+  get "/api/cog/:namespace/:name" do
+    %{"name" => name, "namespace" => namespace} = conn.params
+    case ConfigService.find(name, namespace) do
+      nil ->
+        {:not_found, %{success: false, message: "cannot find Config with name #{name} namespace #{namespace}"}
+        |> Poison.encode!}
+      result -> {:ok, %{data: result |> ConfigService.as_json} |> Poison.encode!}
+    end |> handle_response(conn)
+  end
+
   post "/api/sch" do
     case conn.body_params
     |> Map.fetch!("sch")
@@ -55,6 +65,16 @@ defmodule HttpApi.Endpoints do
     |> CollectionService.create do
       {:ok, collection} -> {:ok, collection |> CollectionService.as_json |> Poison.encode!}
       {:error, cs} -> {:malformed_data, response_error(:create_col, cs) |> Poison.encode!}
+    end |> handle_response(conn)
+  end
+
+  get "/api/col/:namespace/:name" do
+    %{"name" => name, "namespace" => namespace} = conn.params
+    case CollectionService.find(name, namespace) do
+      nil ->
+        {:not_found, %{success: false, message: "cannot find Collection with name #{name} namespace #{namespace}"}
+        |> Poison.encode!}
+      result -> {:ok, %{data: result |> CollectionService.as_json} |> Poison.encode!}
     end |> handle_response(conn)
   end
 

@@ -76,7 +76,7 @@ defmodule HttpApi.SchemaEndpointTest do
   describe "get /api/sch/:name " do
     test "should find schema" do
       {:ok, expected_result} = Fixture.schema_object |> SchemaService.create
-      with_mock SchemaService, [:passthrough], [find: fn(_name) -> expected_result end] do
+      with_mock SchemaService, [:passthrough], [] do
         {_status, json} = make_call(:get, "/api/sch/#{expected_result.name}", %{})
         assert_called SchemaService.find(expected_result.name)
         assert json == %{data: expected_result |> SchemaService.as_json} |> Poison.encode!

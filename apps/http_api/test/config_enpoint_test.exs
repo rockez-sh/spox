@@ -5,6 +5,7 @@ defmodule HttpApi.ConfigEnpointTest do
   import HttpApi.TestUtils
   alias Core.Fixture
   alias Core.ConfigService
+  import Mock
 
   test "post /api/cog" do
     fixture = Fixture.cog_string_valid
@@ -27,5 +28,14 @@ defmodule HttpApi.ConfigEnpointTest do
     assert status == 400
     %{"success" => false , "errors" => %{"schema" => schema_not_found} } = response |> Poison.decode!
     assert schema_not_found == "not found"
+  end
+
+  test "post /api/cog/:namespace/:name" do
+    {:ok, expected_result} = Fixture.cog_string_valid |> ConfigService.create
+    with_mock ConfigService, [:passthrough], [] do
+      {_status, json} = make_call(:get, "/api/cog/#{expected_result.namespace}/#{expected_result.name}", %{})
+      assert_called ConfigService.find(expected_result.name, expected_result.namespace)
+      assert json == %{data: expected_result |> ConfigService.as_json} |> Poison.encode!
+    end
   end
 end
