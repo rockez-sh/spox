@@ -16,6 +16,7 @@ import {
   useParams
 } from "react-router-dom";
 import NOTFOUND from './NOT_FOUND';
+import {formState} from '../Utils';
 
 import { useState, useEffect } from 'react';
 
@@ -31,7 +32,7 @@ export default function SchemaPage () {
     notFound: false,
     form_data: { name: null, desc: null, value: '{}'
   }})
-
+  const stateUpdater = formState(state, setState)
   const {name: schemaName} = useParams()
 
   useEffect(() => {
@@ -44,20 +45,12 @@ export default function SchemaPage () {
     .then(resp => resp.ok ? resp.json() : raiseError(resp.status))
     .then(json =>  setState({...state , form_data: json.data, loaded: true }))
     .catch(error => {
-      console.log(error.message)
       if(error.message === "404"){
         setState({...state, notFound: true, loaded: true})
       }
     })
   });
 
-
-  function stateUpdater(attribute) {
-    return function(e){
-      let form_data = {...state.form_data, [attribute]: e.target.value}
-      setState({...state, form_data})
-    }
-  }
 
   function submit() {
     setState({...state, saving: true})
@@ -67,11 +60,12 @@ export default function SchemaPage () {
       body: JSON.stringify({sch: state.form_data}),
     })
     .then(response => {
+      toaster.success("Schema saved 🎉")
+      setState({...state, saving: false, loaded: true})
       response.json()
-      setState({...state, saving: false})
     })
     .catch((error) => {
-      console.error('Error:', error);
+      toaster.danger("Sorry, there is issue connecting to API")
       setState({...state, saving: false})
     });
   }
@@ -93,6 +87,7 @@ export default function SchemaPage () {
             width="60%"
             marginRight={40}
             value={state.form_data.name}
+            disabled={state.loaded}
             onChange={ stateUpdater('name') }
           />
         </Pane>
