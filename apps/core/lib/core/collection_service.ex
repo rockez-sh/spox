@@ -46,8 +46,8 @@ defmodule Core.CollectionService do
     }
   end
 
-  def as_json([%Collection{}] = changesets) do
-     changesets |> Enum.map(fn(changeset)->
+  def as_json([%Collection{} = head | rest] = changesets) do
+     [head] ++ rest |> Enum.map(fn(changeset)->
         %{
           id: changeset.id,
           version: changeset.version,

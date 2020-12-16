@@ -58,8 +58,8 @@ defmodule Core.SchemaService do
     %{id: schema.id, name: schema.name, value: schema.value}
   end
 
-  def as_json([%Schema{}] = schemas) do
-    schemas |> Enum.map(&as_json_search_result/1)
+  def as_json([%Schema{} = head | rest]) do
+    [head] ++ rest |> Enum.map(&as_json_search_result/1)
   end
 
   def as_json([]), do: []

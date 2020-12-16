@@ -43,9 +43,10 @@ defmodule Core.ConfigService do
     }
   end
 
-  def as_json([%ConfigModel{}] = changesets) do
-     changesets |> Enum.map(&as_json_search_result/1)
+  def as_json([%ConfigModel{} = head | rest]) do
+     [head] ++ rest |> Enum.map(&as_json_search_result/1)
   end
+  
   def as_json([]), do: []
 
   defp as_json_search_result(changeset) do
