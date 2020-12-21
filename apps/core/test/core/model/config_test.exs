@@ -1,4 +1,5 @@
 defmodule Core.Model.ConfigTest do
+  use ExUnit.Case
   use Core.DataCase
 
   test "uniquness name vs version" do

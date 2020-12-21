@@ -12,7 +12,8 @@ defmodule Core.MixProject do
       lockfile: "../../mix.lock",
       elixir: "~> 1.8",
       start_permanent: Mix.env() == :prod,
-      deps: deps()
+      deps: deps(),
+      aliases: aliases()
     ]
   end
 
@@ -36,7 +37,14 @@ defmodule Core.MixProject do
       {:poison, "~> 4.0.1"},
       {:ex_json_schema, "~> 0.7.4"},
       {:redix, "~> 1.0"},
-      {:mock, "~> 0.3", only: :test}
+      {:mock, "~> 0.3", only: :test},
+      {:yaml_elixir, "~> 2.5"}
+    ]
+  end
+
+  defp aliases do
+    [
+      "core.seed": "core_seed"
     ]
   end
 end
