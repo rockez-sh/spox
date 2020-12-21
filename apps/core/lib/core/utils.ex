@@ -9,21 +9,21 @@ defmodule Core.Utils do
 
   def multi(args, state, func) do
     case func.(args) do
-       {:ok, result } -> {:ok, %{} |> Map.put(state, result)}
-       {:error, message} -> {:error, state, message}
+      {:ok, result} -> {:ok, %{} |> Map.put(state, result)}
+      {:error, message} -> {:error, state, message}
     end
   end
 
   def run(prev, current_state, func, args) do
-    run(prev, current_state, fn (state) -> func.(args) end  )
+    run(prev, current_state, fn state -> func.(args) end)
   end
 
   def run(prev, current_state, func, args, args2) do
-    run(prev, current_state, fn (state) -> func.(args, args2) end  )
+    run(prev, current_state, fn state -> func.(args, args2) end)
   end
 
   def run(prev, current_state, func, args, args2, args3) do
-    run(prev, current_state, fn (state) -> func.(args, args2, args3) end  )
+    run(prev, current_state, fn state -> func.(args, args2, args3) end)
   end
 
   def run(prev, current_state, func) do
@@ -33,14 +33,15 @@ defmodule Core.Utils do
           {:ok, result} -> {:ok, state |> Map.put(current_state, result)}
           {:error, message} -> {:error, current_state, message}
         end
+
       {:error, error_state, message} when is_atom(error_state) ->
         {:error, error_state, message}
     end
   end
 
   def map_to_keyword(map, keys \\ []) do
-    Enum.filter(map, fn({k, value}) -> Enum.any?(keys, fn(key)-> k == key end) end)
-    |> Enum.map(fn({key, value}) -> {key, value} end)
+    Enum.filter(map, fn {k, value} -> Enum.any?(keys, fn key -> k == key end) end)
+    |> Enum.map(fn {key, value} -> {key, value} end)
   end
 
   def pif(x, condition, func) do
@@ -50,5 +51,4 @@ defmodule Core.Utils do
       x
     end
   end
-
 end

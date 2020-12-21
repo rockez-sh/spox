@@ -1,11 +1,11 @@
 defmodule HttpApi.Endpoints do
   alias Core.Utils
   use Plug.Router
-  plug CORSPlug
-  plug Plug.Logger, log: :debug
-  plug :match
-  plug Plug.Parsers, parsers: [:json], json_decoder: Poison
-  plug :dispatch
+  plug(CORSPlug)
+  plug(Plug.Logger, log: :debug)
+  plug(:match)
+  plug(Plug.Parsers, parsers: [:json], json_decoder: Poison)
+  plug(:dispatch)
 
   alias Core.ConfigService
   alias Core.SchemaService
@@ -14,80 +14,113 @@ defmodule HttpApi.Endpoints do
 
   post "/api/cog" do
     case conn.body_params
-    |> Map.fetch!("cog")
-    |> Utils.atomize_map
-    |> ConfigService.create do
+         |> Map.fetch!("cog")
+         |> Utils.atomize_map()
+         |> ConfigService.create() do
       {:ok, cs} ->
-        {:ok, cs |> ConfigService.as_json |> Poison.encode!}
+        {:ok, cs |> ConfigService.as_json() |> Poison.encode!()}
+
       {:error, stage, error} ->
-        {:malformed_data, response_error(:create_cog, stage, error) |> Poison.encode! }
-      _ -> {:server_error, "unknow error"}
-    end |> handle_response(conn)
+        {:malformed_data, response_error(:create_cog, stage, error) |> Poison.encode!()}
+
+      _ ->
+        {:server_error, "unknow error"}
+    end
+    |> handle_response(conn)
   end
 
   get "/api/cog/:namespace/:name" do
     %{"name" => name, "namespace" => namespace} = conn.params
+
     case ConfigService.find(name, namespace) do
       nil ->
-        {:not_found, %{success: false, message: "cannot find Config with name #{name} namespace #{namespace}"}
-        |> Poison.encode!}
-      result -> {:ok, %{data: result |> ConfigService.as_json} |> Poison.encode!}
-    end |> handle_response(conn)
+        {:not_found,
+         %{success: false, message: "cannot find Config with name #{name} namespace #{namespace}"}
+         |> Poison.encode!()}
+
+      result ->
+        {:ok, %{data: result |> ConfigService.as_json()} |> Poison.encode!()}
+    end
+    |> handle_response(conn)
   end
 
   post "/api/sch" do
     case conn.body_params
-    |> Map.fetch!("sch")
-    |> Utils.atomize_map
-    |> SchemaService.create do
+         |> Map.fetch!("sch")
+         |> Utils.atomize_map()
+         |> SchemaService.create() do
       {:ok, schema} ->
-        {:ok, schema
-        |> SchemaService.as_json
-        |> Poison.encode!}
+        {:ok,
+         schema
+         |> SchemaService.as_json()
+         |> Poison.encode!()}
+
       {:error, stage, message} ->
-        {:malformed_data, response_error(:create_schema, stage, message)
-        |> Poison.encode!}
-    end |> handle_response(conn)
+        {:malformed_data,
+         response_error(:create_schema, stage, message)
+         |> Poison.encode!()}
+    end
+    |> handle_response(conn)
   end
 
   get "/api/sch/:name" do
     %{"name" => sch_name} = conn.params
+
     case SchemaService.find(sch_name) do
-      nil -> {:not_found, %{success: false, message: "cannot find Schema with name #{sch_name}"} |> Poison.encode!}
-      result -> {:ok, %{data: result |> SchemaService.as_json} |> Poison.encode!}
-    end |> handle_response(conn)
+      nil ->
+        {:not_found,
+         %{success: false, message: "cannot find Schema with name #{sch_name}"}
+         |> Poison.encode!()}
+
+      result ->
+        {:ok, %{data: result |> SchemaService.as_json()} |> Poison.encode!()}
+    end
+    |> handle_response(conn)
   end
 
   post "/api/col" do
     case conn.body_params
-    |> Map.fetch!("col")
-    |> Utils.atomize_map
-    |> CollectionService.create do
-      {:ok, collection} -> {:ok, collection |> CollectionService.as_json |> Poison.encode!}
-      {:error, cs} -> {:malformed_data, response_error(:create_col, cs) |> Poison.encode!}
-    end |> handle_response(conn)
+         |> Map.fetch!("col")
+         |> Utils.atomize_map()
+         |> CollectionService.create() do
+      {:ok, collection} -> {:ok, collection |> CollectionService.as_json() |> Poison.encode!()}
+      {:error, cs} -> {:malformed_data, response_error(:create_col, cs) |> Poison.encode!()}
+    end
+    |> handle_response(conn)
   end
 
   get "/api/col/:namespace/:name" do
     %{"name" => name, "namespace" => namespace} = conn.params
+
     case CollectionService.find(name, namespace) do
       nil ->
-        {:not_found, %{success: false, message: "cannot find Collection with name #{name} namespace #{namespace}"}
-        |> Poison.encode!}
-      result -> {:ok, %{data: result |> CollectionService.as_json} |> Poison.encode!}
-    end |> handle_response(conn)
+        {:not_found,
+         %{
+           success: false,
+           message: "cannot find Collection with name #{name} namespace #{namespace}"
+         }
+         |> Poison.encode!()}
+
+      result ->
+        {:ok, %{data: result |> CollectionService.as_json()} |> Poison.encode!()}
+    end
+    |> handle_response(conn)
   end
 
   post "/api/search" do
-    params = conn.body_params |> Utils.atomize_map
+    params = conn.body_params |> Utils.atomize_map()
+
     case %{}
-    |> search(params, CollectionService, :collections)
-    |> search(params, ConfigService, :configs)
-    |> search(params, SchemaService, :schemas) do
+         |> search(params, CollectionService, :collections)
+         |> search(params, ConfigService, :configs)
+         |> search(params, SchemaService, :schemas) do
       {:ok, result} ->
-        {:ok, %{data: result} |> Poison.encode! }
-      {:error, _} -> {:server_error, 0}
-    end |> handle_response(conn)
+        {:ok, %{data: result} |> Poison.encode!()}
+
+      {:error, _} ->
+        {:server_error, 0}
+    end
+    |> handle_response(conn)
   end
 
   get "/ping" do
@@ -99,12 +132,13 @@ defmodule HttpApi.Endpoints do
   end
 
   defp search({:ok, result}, params, service, attr_name) do
-    if params[:scope] && params[:scope] !=  Atom.to_string(attr_name) do
+    if params[:scope] && params[:scope] != Atom.to_string(attr_name) do
       {:ok, result}
     else
       search(result, params, service, attr_name)
     end
   end
+
   defp search({:error, message}, _, _, _) do
     {:error, message}
   end
@@ -115,14 +149,18 @@ defmodule HttpApi.Endpoints do
     else
       case params |> service.search do
         result when is_list(result) ->
-          {:ok, Map.put(chain_result, attr_name, result |> service.as_json) }
-        {:error, message} -> {:error, message}
-        _ -> {:ok, chain_result}
+          {:ok, Map.put(chain_result, attr_name, result |> service.as_json)}
+
+        {:error, message} ->
+          {:error, message}
+
+        _ ->
+          {:ok, chain_result}
       end
     end
   end
-  defp handle_response(response, conn) do
 
+  defp handle_response(response, conn) do
     # The service will always return a response that follow this pattern: {:code, :response}.
     # We will use the code to determine whether a request has been successfully treated or not.
     %{code: code, message: message} =

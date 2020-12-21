@@ -10,7 +10,7 @@ defmodule Core.Fixture do
 
   def schema_object do
     %{
-      name: "sample_schema" ,
+      name: "sample_schema",
       value: """
       {
         "type" : "object",
@@ -25,16 +25,16 @@ defmodule Core.Fixture do
 
   def cog_object_valid do
     %{
-        name: "merchant_email_receiver",
-        value: """
-        {
-          "name" : "credit_card",
-          "attr_number" : 1
-        }
-        """,
-        datatype: "object",
-        namespace: "default",
-        schema: "sample_schema"
+      name: "merchant_email_receiver",
+      value: """
+      {
+        "name" : "credit_card",
+        "attr_number" : 1
+      }
+      """,
+      datatype: "object",
+      namespace: "default",
+      schema: "sample_schema"
     }
   end
 

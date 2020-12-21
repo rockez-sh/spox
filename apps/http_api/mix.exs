@@ -35,6 +35,7 @@ defmodule HttpApi.MixProject do
       # {:sibling_app_in_umbrella, in_umbrella: true}
     ]
   end
+
   defp elixirc_paths(:test), do: ["lib", "test/support"]
   defp elixirc_paths(_), do: ["lib"]
 end

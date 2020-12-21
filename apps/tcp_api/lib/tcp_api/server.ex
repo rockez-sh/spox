@@ -12,7 +12,7 @@ defmodule TcpApi.Server do
     config(:tcp_api, :server, :port)
   end
 
-  defp max_conn  do
+  defp max_conn do
     config(:tcp_api, :server, :max_conn)
   end
 end

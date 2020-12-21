@@ -11,15 +11,17 @@ defmodule Core.Model.ConfigTest do
       namespace: "default"
     }
 
-    {:ok, _} =  %Core.Model.Config{}
-    |> Core.Model.Config.changeset(fixture)
-    |> Core.Repo.insert()
+    {:ok, _} =
+      %Core.Model.Config{}
+      |> Core.Model.Config.changeset(fixture)
+      |> Core.Repo.insert()
 
-    assert Core.Repo.one(from p in Core.Model.Config, select: count(p.id)) == 1
+    assert Core.Repo.one(from(p in Core.Model.Config, select: count(p.id))) == 1
 
-    {:error, cs} = %Core.Model.Config{}
-    |> Core.Model.Config.changeset(fixture)
-    |> Core.Repo.insert()
+    {:error, cs} =
+      %Core.Model.Config{}
+      |> Core.Model.Config.changeset(fixture)
+      |> Core.Repo.insert()
 
     assert %{name: ["has already been taken"]} == errors_on(cs)
   end

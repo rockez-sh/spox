@@ -41,4 +41,4 @@ config :core, Core.Repo,
 config :core,
   config_transformer: Core.Utils.Config.Transformer
 
- import_config "#{Mix.env()}.exs"
+import_config "#{Mix.env()}.exs"

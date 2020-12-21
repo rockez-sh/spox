@@ -14,16 +14,18 @@ defmodule Core.CollectionService do
       cs -> cs
     end
     |> set_changeset(attrs)
-    |> Repo.insert_or_update
+    |> Repo.insert_or_update()
   end
 
   def touch(repo, cs, cfg) do
-    cs = Collection.changeset(cs, %{version: DateTime.utc_now |> DateTime.to_unix(:millisecond)})
+    cs =
+      Collection.changeset(cs, %{version: DateTime.utc_now() |> DateTime.to_unix(:millisecond)})
+
     case Multi.new()
-    |> Multi.run(:cog, fn(_, _) -> {:ok, cfg} end )
-    |> Multi.update(:updated_col, cs)
-    |> Multi.run(:copy_to_redis, &copy_to_redis/2)
-    |> repo.transaction() do
+         |> Multi.run(:cog, fn _, _ -> {:ok, cfg} end)
+         |> Multi.update(:updated_col, cs)
+         |> Multi.run(:copy_to_redis, &copy_to_redis/2)
+         |> repo.transaction() do
       {:ok, %{updated_col: col}} -> {:ok, col}
       {:error, _, message} -> {:error, message}
     end
@@ -33,7 +35,7 @@ defmodule Core.CollectionService do
     Collection
     |> where([c], c.name == ^name)
     |> where([c], c.namespace == ^namespace)
-    |> Repo.one
+    |> Repo.one()
   end
 
   def as_json(%Collection{} = changeset) do
@@ -47,29 +49,35 @@ defmodule Core.CollectionService do
   end
 
   def as_json([%Collection{} = head | rest] = changesets) do
-     [head] ++ rest |> Enum.map(fn(changeset)->
-        %{
-          id: changeset.id,
-          version: changeset.version,
-          name: changeset.name,
-          desc: changeset.desc
-        }
-      end)
+    ([head] ++ rest)
+    |> Enum.map(fn changeset ->
+      %{
+        id: changeset.id,
+        version: changeset.version,
+        name: changeset.name,
+        desc: changeset.desc
+      }
+    end)
   end
+
   def as_json([]), do: []
 
   def get_version(name, namespace \\ "default") do
     case Redis.command(:get, "col:ver:#{namespace}.#{name}") do
       {:ok, nil} ->
         case find(name, namespace) do
-          nil -> {:ok, nil}
+          nil ->
+            {:ok, nil}
+
           cs ->
             case copy_to_redis(cs) do
               {:ok, _} -> {:ok, cs.version}
-              {:error, message} -> {:error, message} 
+              {:error, message} -> {:error, message}
             end
+
             {:ok, cs.version}
         end
+
       {:ok, val} ->
         {intVer, _} = Integer.parse(val)
         {:ok, intVer}
@@ -79,30 +87,33 @@ defmodule Core.CollectionService do
   def search(query, page \\ 1, per_page \\ 10)
 
   def search(%Ecto.Query{} = query, page, per_page) do
-    page_offset = (page-1) * per_page
+    page_offset = (page - 1) * per_page
+
     query
     |> select([:name, :desc, :namespace, :version, :id])
     |> limit(^per_page)
     |> offset(^page_offset)
-    |> Repo.all
+    |> Repo.all()
   end
 
   def search(term, page, per_page) when is_map(term) do
-    keyword = case Map.fetch(term, :keyword) do
-      {:ok, v} -> "%#{v}%"
-      _ -> nil
-    end
+    keyword =
+      case Map.fetch(term, :keyword) do
+        {:ok, v} -> "%#{v}%"
+        _ -> nil
+      end
+
     term_search = map_to_keyword(term, [:name, :namespace])
 
     unless length(term_search) > 0 or keyword do
       []
     else
       Collection
-      |> pif(length(term_search) > 0, fn(x) ->
+      |> pif(length(term_search) > 0, fn x ->
         x
         |> where([c], ^term_search)
       end)
-      |> pif(keyword != nil, fn(x) ->
+      |> pif(keyword != nil, fn x ->
         x
         |> where([c], like(c.name, ^keyword))
         |> or_where([c], like(c.desc, ^keyword))
@@ -116,6 +127,7 @@ defmodule Core.CollectionService do
       ["SET", "col:ver:#{col.namespace}.#{col.name}", col.version],
       ["HSET", "col:val:#{col.namespace}.#{col.name}", cog.name, cog.value]
     ]
+
     case Redis.transaction_pipeline(commands) do
       {:ok, _} -> {:ok, col}
       {:error, message} -> {:error, message}
@@ -124,11 +136,17 @@ defmodule Core.CollectionService do
 
   defp copy_to_redis(col) do
     cmds = [["SET", "col:ver:#{col.namespace}.#{col.name}", col.version]]
-    cog_cmds = Config
-     |> where([c], c.collection_id == ^col.id)
-     |> Repo.all
-     |> Enum.map(fn(cog) -> ["HSET", "col:val:#{col.namespace}.#{col.name}", cog.name, cog.value] end)
+
+    cog_cmds =
+      Config
+      |> where([c], c.collection_id == ^col.id)
+      |> Repo.all()
+      |> Enum.map(fn cog ->
+        ["HSET", "col:val:#{col.namespace}.#{col.name}", cog.name, cog.value]
+      end)
+
     cmds = cmds ++ cog_cmds
+
     case Redis.transaction_pipeline(cmds) do
       {:ok, _} -> {:ok, col}
       {:error, message} -> {:error, message}
@@ -136,10 +154,11 @@ defmodule Core.CollectionService do
   end
 
   def set_changeset(cs, attrs) do
-    attrs = case cs.id do
-      nil -> attrs |> Map.put(:version, 0)
-      _ -> attrs
-    end
+    attrs =
+      case cs.id do
+        nil -> attrs |> Map.put(:version, 0)
+        _ -> attrs
+      end
 
     cs |> Collection.changeset(attrs)
   end
@@ -149,12 +168,14 @@ defmodule Core.CollectionService do
       []
     else
       case Redis.command("hgetall", ["col:val:#{col.namespace}.#{col.name}"]) do
-        {:ok, result} when length(result) > 0 ->
+        {:ok, result} when result != [] ->
           result
           |> Enum.chunk_every(2)
           |> Enum.map(&config_as_json/1)
+
         _ ->
           Logger.warn("Fail to fetch Redis cache for #{col.namespace}.#{col.name}")
+
           case copy_to_redis(col) do
             {:ok, _} -> configs_as_json(col)
             {:error, message} -> raise message
@@ -163,7 +184,7 @@ defmodule Core.CollectionService do
     end
   end
 
-  defp config_as_json(%Config{} =cog) do
+  defp config_as_json(%Config{} = cog) do
     %{
       name: cog.name,
       value: cog.value

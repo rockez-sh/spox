@@ -11,24 +11,28 @@ defmodule Core.ConfigService do
 
   def create(attrs \\ %{}) do
     case multi()
-      |> run(:assign_collection, &assign_collection/1, attrs)
-      |> run(:validate_schema, &validate_schema/1)
-      |> run(:define_default, &define_default_value/1)
-      |> run(:define_changeset, &define_changeset/1) do
+         |> run(:assign_collection, &assign_collection/1, attrs)
+         |> run(:validate_schema, &validate_schema/1)
+         |> run(:define_default, &define_default_value/1)
+         |> run(:define_changeset, &define_changeset/1) do
       {:ok, %{define_changeset: changeset}} ->
         case Multi.new()
-          |> Multi.insert(:saving_cog, changeset)
-          |> Multi.run(:promote_collection, &promote_collection/2)
-          |> Multi.run(:old_cog, &promote_latest/2)
-          |> Multi.run(:redis_copy, &copy_to_redis/2)
-          |> Repo.transaction() do
-            {:ok, %{saving_cog: saving_cog}} -> {:ok, saving_cog}
-            {:error, :saving_cog, repo, _} ->
-              {:error, :saving_cog, repo}
-            {:error, _, error_message, _} ->
-              {:error, error_message}
-          end
-      {:error, state, error}  ->
+             |> Multi.insert(:saving_cog, changeset)
+             |> Multi.run(:promote_collection, &promote_collection/2)
+             |> Multi.run(:old_cog, &promote_latest/2)
+             |> Multi.run(:redis_copy, &copy_to_redis/2)
+             |> Repo.transaction() do
+          {:ok, %{saving_cog: saving_cog}} ->
+            {:ok, saving_cog}
+
+          {:error, :saving_cog, repo, _} ->
+            {:error, :saving_cog, repo}
+
+          {:error, _, error_message, _} ->
+            {:error, error_message}
+        end
+
+      {:error, state, error} ->
         {:error, state, error}
     end
   end
@@ -44,9 +48,9 @@ defmodule Core.ConfigService do
   end
 
   def as_json([%ConfigModel{} = head | rest]) do
-     [head] ++ rest |> Enum.map(&as_json_search_result/1)
+    ([head] ++ rest) |> Enum.map(&as_json_search_result/1)
   end
-  
+
   def as_json([]), do: []
 
   defp as_json_search_result(changeset) do
@@ -62,18 +66,21 @@ defmodule Core.ConfigService do
     |> where([c], c.name == ^name)
     |> where([c], c.namespace == ^namespace)
     |> where([c], c.latest == true)
-    |> Repo.one
+    |> Repo.one()
   end
 
-  def get_version(name, namespace \\"default") do
+  def get_version(name, namespace \\ "default") do
     case Redis.command(:get, "cog:ver:#{namespace}.#{name}") do
       {:ok, nil} ->
         case find(name, namespace) do
-          nil -> {:ok, nil}
+          nil ->
+            {:ok, nil}
+
           cs ->
             copy_to_redis(cs)
             {:ok, cs.version}
         end
+
       {:ok, val} ->
         {intVer, _} = Integer.parse(val)
         {:ok, intVer}
@@ -84,49 +91,55 @@ defmodule Core.ConfigService do
     case Redis.command(:get, "cog:val:#{namespace}.#{name}") do
       {:ok, nil} ->
         case find(name, namespace) do
-          nil -> {:ok, nil}
+          nil ->
+            {:ok, nil}
+
           cs ->
             copy_to_redis(cs)
             {:ok, cs.value}
         end
-      {:ok, val} -> {:ok, val}
+
+      {:ok, val} ->
+        {:ok, val}
     end
   end
 
   def search(query, page \\ 1, per_page \\ 10)
 
   def search(%Ecto.Query{} = query, page, per_page) do
-    page_offset = (page-1) * per_page
+    page_offset = (page - 1) * per_page
+
     query
     |> select([:name, :namespace, :version, :id])
     |> limit(^per_page)
     |> offset(^page_offset)
-    |> Repo.all
+    |> Repo.all()
   end
 
   def search(term, page, per_page) when is_map(term) do
-    keyword = case Map.fetch(term, :keyword) do
-      {:ok, v} -> "%#{v}%"
-      _ -> nil
-    end
+    keyword =
+      case Map.fetch(term, :keyword) do
+        {:ok, v} -> "%#{v}%"
+        _ -> nil
+      end
+
     term_search = map_to_keyword(term, [:name, :namespace])
 
     unless length(term_search) > 0 or keyword do
       []
     else
       ConfigModel
-      |> pif(length(term_search) > 0, fn(x) ->
+      |> pif(length(term_search) > 0, fn x ->
         x
         |> where([c], ^term_search)
       end)
-      |> pif(keyword != nil, fn(x) ->
+      |> pif(keyword != nil, fn x ->
         x
         |> where([c], like(c.name, ^keyword))
       end)
       |> search(page, per_page)
     end
   end
-
 
   defp schema_name!(changeset) do
     case changeset.schema_id do
@@ -136,32 +149,36 @@ defmodule Core.ConfigService do
   end
 
   defp define_default_value(%{validate_schema: attrs}) do
-    {:ok, attrs
-    |> Map.put(:latest, true)
-    |> Map.put(:version, DateTime.utc_now |> DateTime.to_unix(:millisecond))}
+    {:ok,
+     attrs
+     |> Map.put(:latest, true)
+     |> Map.put(:version, DateTime.utc_now() |> DateTime.to_unix(:millisecond))}
   end
 
   defp define_changeset(%{define_default: attrs}) do
-    {:ok, ConfigModel.changeset(%ConfigModel{}, attrs) }
+    {:ok, ConfigModel.changeset(%ConfigModel{}, attrs)}
   end
 
-  defp promote_latest(repo, %{saving_cog: changeset} ) do
+  defp promote_latest(repo, %{saving_cog: changeset}) do
     case ConfigModel
-    |> where([c], c.id != ^changeset.id)
-    |> where([c], c.name == ^changeset.name)
-    |> where([c], c.latest == true)
-    |> repo.update_all(set: [latest: false]) do
+         |> where([c], c.id != ^changeset.id)
+         |> where([c], c.name == ^changeset.name)
+         |> where([c], c.latest == true)
+         |> repo.update_all(set: [latest: false]) do
       {:error, error} -> {:error, error}
       {1, nil} -> {:ok, changeset}
       _ -> {:ok, changeset}
     end
   end
 
-  defp promote_collection(repo, %{saving_cog: changeset} ) do
+  defp promote_collection(repo, %{saving_cog: changeset}) do
     case changeset.collection_id do
-      nil -> {:ok, :ok}
+      nil ->
+        {:ok, :ok}
+
       cid ->
         col_cs = Core.Model.Collection |> Repo.get(cid)
+
         case CollectionService.touch(repo, col_cs, changeset) do
           {:ok, cs} -> {:ok, cs}
           {:error, message} -> {:error, message}
@@ -169,32 +186,42 @@ defmodule Core.ConfigService do
     end
   end
 
-  defp validate_schema(%{assign_collection: %{schema: schema_name, value: value} = attrs } ) do
-    case from(s in SchemaConfig, where: s.name == ^schema_name) |>Repo.one() do
-      nil -> {:error, :schema_not_found}
+  defp validate_schema(%{assign_collection: %{schema: schema_name, value: value} = attrs}) do
+    case from(s in SchemaConfig, where: s.name == ^schema_name) |> Repo.one() do
+      nil ->
+        {:error, :schema_not_found}
+
       schema ->
         Logger.info("Schema Found")
+
         case schema.value
-          |> Poison.decode!
-          |> ExJsonSchema.Schema.resolve()
-          |> ExJsonSchema.Validator.validate(value |> Poison.decode!) do
-            :ok ->
-              attrs = attrs |> Map.delete(:schema) |> Map.put(:schema_id, schema.id)
-              {:ok, attrs}
-            {:error, detail_error} -> {:error, detail_error}
+             |> Poison.decode!()
+             |> ExJsonSchema.Schema.resolve()
+             |> ExJsonSchema.Validator.validate(value |> Poison.decode!()) do
+          :ok ->
+            attrs = attrs |> Map.delete(:schema) |> Map.put(:schema_id, schema.id)
+            {:ok, attrs}
+
+          {:error, detail_error} ->
+            {:error, detail_error}
         end
     end
   end
+
   defp validate_schema(%{assign_collection: attrs}), do: {:ok, attrs}
 
   defp assign_collection(%{collection: collection_name, namespace: namespace} = attrs) do
     case collection_name do
-      nil -> attrs
-      "" -> attrs
+      nil ->
+        attrs
+
+      "" ->
+        attrs
+
       _ ->
         case CollectionService.find(collection_name, namespace) do
           nil -> {:error, "collection not found"}
-          cs -> {:ok, attrs |> Map.put(:collection_id, cs.id) }
+          cs -> {:ok, attrs |> Map.put(:collection_id, cs.id)}
         end
     end
   end
@@ -203,9 +230,10 @@ defmodule Core.ConfigService do
 
   defp copy_to_redis(changeset) do
     commands = [
-      ["SET", "cog:val:#{changeset.namespace}.#{changeset.name}", changeset.value ],
+      ["SET", "cog:val:#{changeset.namespace}.#{changeset.name}", changeset.value],
       ["SET", "cog:ver:#{changeset.namespace}.#{changeset.name}", changeset.version]
     ]
+
     case Redis.transaction_pipeline(commands) do
       {:ok, _} -> {:ok, changeset}
       {:error, message} -> {:error, message}
@@ -215,7 +243,6 @@ defmodule Core.ConfigService do
   defp copy_to_redis(_, %{saving_cog: changeset}) do
     copy_to_redis(changeset)
   end
-
 
   # defp promote_latest(created_config) do
   # end

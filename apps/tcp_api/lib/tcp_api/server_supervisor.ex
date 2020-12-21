@@ -9,6 +9,7 @@ defmodule TcpApi.ServerSupervisor do
     children = [
       worker(TcpApi.Server, [])
     ]
+
     supervise(children, strategy: :one_for_one)
   end
 end

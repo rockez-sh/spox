@@ -3,24 +3,28 @@ defmodule TcpApi.Protocol do
   require Poison
   alias Core.ConfigService
   alias Core.CollectionService
-  def process("val:cog:" <> keypair ) do
+
+  def process("val:cog:" <> keypair) do
     [namespace, name] = String.split(keypair, ".")
+
     case ConfigService.get_value(name, namespace) do
       {:ok, nil} -> "can't find cog value for #{namespace}.#{name}" |> reply(:not_found)
       {:ok, data} -> reply(data)
     end
   end
 
-  def process("ver:cog:" <> keypair ) do
+  def process("ver:cog:" <> keypair) do
     [namespace, name] = String.split(keypair, ".")
+
     case ConfigService.get_version(name, namespace) do
       {:ok, nil} -> "can't find cog version for #{namespace}.#{name}" |> reply(:not_found)
       {:ok, data} -> reply(data)
     end
   end
 
-  def process("ver:col:" <> keypair ) do
+  def process("ver:col:" <> keypair) do
     [namespace, name] = String.split(keypair, ".")
+
     case CollectionService.get_version(name, namespace) do
       {:ok, nil} -> "can't find col version for #{namespace}.#{name}" |> reply(:not_found)
       {:ok, data} -> reply(data)

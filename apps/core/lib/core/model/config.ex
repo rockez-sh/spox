@@ -4,14 +4,14 @@ defmodule Core.Model.Config do
 
   @primary_key {:id, :binary_id, autogenerate: true}
   schema "cog" do
-    field :name, :string
-    field :value, :binary
-    field :version, :integer
-    field :schema_id, :string
-    field :collection_id, :string
-    field :latest, :boolean
-    field :datatype, :string
-    field :namespace, :string
+    field(:name, :string)
+    field(:value, :binary)
+    field(:version, :integer)
+    field(:schema_id, :string)
+    field(:collection_id, :string)
+    field(:latest, :boolean)
+    field(:datatype, :string)
+    field(:namespace, :string)
     timestamps()
   end
 

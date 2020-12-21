@@ -4,8 +4,8 @@ defmodule Core.Model.Schema do
   @primary_key {:id, :binary_id, autogenerate: true}
 
   schema "sch" do
-    field :name, :string
-    field :value, :binary
+    field(:name, :string)
+    field(:value, :binary)
     timestamps()
   end
 

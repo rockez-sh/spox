@@ -12,7 +12,8 @@ defmodule HttpApi.Application do
       # Starts a worker by calling: HttpApi.Worker.start_link(arg)
       # {HttpApi.Worker, arg}
 
-      {Plug.Cowboy, scheme: :http, plug: HttpApi.Endpoints, options: [port: config(:http_api, :port) ]}
+      {Plug.Cowboy,
+       scheme: :http, plug: HttpApi.Endpoints, options: [port: config(:http_api, :port)]}
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html
