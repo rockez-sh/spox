@@ -40,9 +40,32 @@ function humanizeString(string) {
     return chars.join('')
   }).join(' ')
 }
+
+function apiCall(path, options, callback, failCallback ) {
+    return fetch('http://localhost:5001' + path, options)
+    .then( async resp => {
+      let json = await resp.json()
+      let status = resp.status
+      if(typeof callback == "object"){
+        if(callback[status] !== undefined){
+          callback[status](json);
+        }
+        else{
+          failCallback(resp);
+        }
+      }else if(typeof callback == "function"){
+        callback(status, json)
+      }
+    })
+    .catch((error) => {
+      failCallback(error, true)
+    });
+}
 export {
   formState,
   humanizeString,
   toasterError,
-  raiseError
+  raiseError,
+  apiCall
 }
+

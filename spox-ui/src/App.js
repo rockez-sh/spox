@@ -24,7 +24,7 @@ function App() {
           >
           <Pane width={700}>
             <Switch>
-              <Route path="/config"><ConfigPage/></Route>
+              <Route path="/config/:namespace?/:name?"><ConfigPage/></Route>
               <Route path="/collection"><CollectionPage/></Route>
               <Route path="/schema/:name?"><SchemaPage/></Route>
               <Route path="/"> <HomePage/> </Route>
