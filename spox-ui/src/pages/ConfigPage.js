@@ -28,6 +28,8 @@ import {
   useParams
 } from "react-router-dom";
 
+import ActionPane from '../lib/ActionPane';
+
 function getSchema(name, cb) {
    fetch('http://localhost:5001/api/sch/' + name)
    .then(resp => resp.ok ? resp.json() : raiseError(resp))
@@ -40,7 +42,7 @@ function SchemaForm(props) {
     schema: {},
     loaded: false
   })
-  const {schemaName, schemaValue, onSubmit, onChange} = props
+  const {schemaName, schemaValue, onSubmit, onChange, saving} = props
 
   function formDataToValue(formData) {
     if(state.schema.type === "array"){
@@ -101,7 +103,9 @@ function SchemaForm(props) {
     formData={ valueToFormData(schemaValue)}
     onSubmit={ (x) => onSubmit(formDataToValue(x.formData)) }
     onChange={ (x) => onChange(formDataToValue(x.formData)) }
-    />
+    >
+      <ActionPane saving={saving}/>
+    </JSForm>
   }
 }
 
@@ -120,6 +124,8 @@ export default function ConfigPage (argument) {
   const {name: configName, namespace} = useParams()
 
   function saveConfig(value) {
+    setState({...state, saving: true})
+
     return apiCall('/api/cog', {
       method: 'POST',
       headers: {'Content-Type': 'application/json' },
@@ -128,7 +134,7 @@ export default function ConfigPage (argument) {
     .then( ({status, json}) => {
       if(status == 200){
         toaster.success("Schema saved 🎉")
-        setState({...state, saving: false, loaded: true})
+        setTimeout(() => setState({...state, saving: false, loaded: true}), 2000 )
       }
     })
     .catch((error) => {
@@ -225,6 +231,7 @@ export default function ConfigPage (argument) {
           </Pane>
         </Pane>
         <SchemaForm
+          saving={ state.saving }
           schemaName={ state.form_data.schema }
           schemaValue={ state.form_data.value }
           onSubmit={ saveConfig }
