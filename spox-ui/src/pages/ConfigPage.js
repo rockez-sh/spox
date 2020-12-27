@@ -43,7 +43,6 @@ function SchemaForm(props) {
   const {schemaName, schemaValue, onSubmit, onChange} = props
 
   function formDataToValue(formData) {
-    console.log("formDataToValue", formData)
     if(state.schema.type === "array"){
       return JSON.stringify(formData.value)
     }else if(state.schema.type === "string"){
@@ -121,8 +120,6 @@ export default function ConfigPage (argument) {
   const {name: configName, namespace} = useParams()
 
   function saveConfig(value) {
-    console.log('saveConfig', value)
-    console.log('state.form_data.value', state.form_data.value)
     return apiCall('/api/cog', {
       method: 'POST',
       headers: {'Content-Type': 'application/json' },
@@ -135,7 +132,6 @@ export default function ConfigPage (argument) {
       }
     })
     .catch((error) => {
-      console.log(error)
       toaster.danger("Sorry, there is issue connecting to API")
       setState({...state, saving: false})
     });
@@ -145,6 +141,7 @@ export default function ConfigPage (argument) {
         return ;
       apiCall("/api/search", {
         method: 'POST',
+        headers: {'Content-Type': 'application/json' },
         body: JSON.stringify({scope: "schemas", keyword: currentValue}),
       })
       .then(({status, json}) => {
@@ -188,6 +185,7 @@ export default function ConfigPage (argument) {
             marginRight={40}
             value={state.form_data.name}
             disabled={state.loaded}
+            onChange={stateUpdater('name')}
           />
           <TextInputField
             label="Namespace"
@@ -196,6 +194,7 @@ export default function ConfigPage (argument) {
             width="35%"
             value={state.form_data.namespace}
             disabled={state.loaded}
+            onChange={stateUpdater('namespace')}
           />
 
         </Pane>
