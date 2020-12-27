@@ -19,7 +19,7 @@ import NOTFOUND from './NOT_FOUND';
 import {formState} from '../Utils';
 
 import { useState, useEffect } from 'react';
-
+import ActionPane from '../lib/ActionPane'
 function raiseError(status){
   throw new Error(status)
 }
@@ -113,12 +113,7 @@ export default function SchemaPage () {
           />
         </Pane>
       </Pane>
-      <Pane padding={20} marginTop={20} textAlign="right" background="tint1">
-        <Button is={Link} to="/" iconBefore={SmallCrossIcon} marginRight={15}>Cancel</Button>
-        <Button appearance="primary" onClick={submit} iconBefore={state.saving ? null : SavedIcon} isLoading={state.saving}>
-          {state.saving ? 'Saving ...' : 'Save'}
-        </Button>
-      </Pane>
+      <ActionPane saving={state.saving} onSubmit={submit} />
     </Pane>
   )
 }
