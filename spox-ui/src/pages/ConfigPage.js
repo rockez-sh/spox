@@ -15,7 +15,15 @@ import {
 } from 'evergreen-ui'
 import JSForm from "../lib/rjs_form";
 import { useState, useEffect } from 'react';
-import { humanizeString, formState, raiseError, toasterError} from '../Utils';
+import {
+  humanizeString,
+  formState,
+  raiseError,
+  toasterError,
+  apiCall,
+  notEmpty
+} from '../Utils';
+
 import {
   useParams
 } from "react-router-dom";
@@ -29,156 +37,141 @@ function getSchema(name, cb) {
 
 function SchemaForm(props) {
   const [state, setState] = useState({
-    schema: {}
+    schema: {},
+    loaded: false
   })
-  // console.log(props)
-  const {schemaName, schemaObject} = props
-  useEffect(() => {
-    function setSchema(schemaJson) {
-      if(schemaJson.type != "object")
-        schemaJson = {"type" : "object", "properties" : { "value" : schemaJson}};
-      setState({schema: schemaJson })
-    }
-    if(schemaName != null && schemaObject == null )
-      getSchema(schemaName,(x) => setSchema(x.value));
-    else if(schemaObject != null)
-      setSchema(schemaObject)
+  const {schemaName, schemaValue, onSubmit, onChange} = props
 
-    return function cleanUp(){
-      setState({schema: {}})
-    }
-  }, [schemaName, schemaObject])
-
-  if(schemaName == null){
-    return <Pane align="center" paddingTop={100}>
-      <FormIcon size={80} color="muted" />
-      <Heading size={700} marginTop={30} color="muted">Schema Form</Heading>
-    </Pane>
-  }else{
-    return <JSForm schema={state.schema} {...props} />
-  }
-}
-
-export default function ConfigPage (argument) {
-  const [state, xsetState] = useState({
-    saving: false,
-    loaded: false,
-    notFound: false,
-    schema_value: {},
-    schema_list: [],
-    schema: null,
-    form_data: { name: null, schema: null, namespace: null, value: null },
-    schema_form_data: {}
-  })
-  function setState(newState) {
-    console.log("setState:before", state)
-    console.log("setState:new", newState)
-
-    if(newState.schema_value && newState.schema_value.enabled)
-      debugger;
-    let r = xsetState(newState)
-    console.log("setState:after", state)
-    return r
-  }
-  const stateUpdater = formState(state, setState)
-  const {name: configName, namespace: namespace} = useParams()
-
-  function getConfig(cb) {
-     fetch('http://localhost:5001/api/cog/' + namespace + '/' + configName)
-     .then(resp => resp.ok ? resp.json() : raiseError(resp))
-     .then(json => cb(json.data))
-     .catch(toasterError)
-  }
-  function valueToFormData(val) {
-    if(!state.loaded)
-      return {};
-
-    if(state.schema.type == "array"){
-      return {"value" : JSON.parse(val)}
-    }else if(state.schema.type == "string"){
-      return {"value": Number(val)}
-    }else if( ["integer", "number"].indexOf(state.schema.type) >= 0 ){
-      return {"value": Number(val)}
-    }else{
-      return JSON.parse(val)
-    }
-
-  }
   function formDataToValue(formData) {
-    if(!state.loaded)
-      return {};
-
-    if(state.schema.type == "array"){
+    console.log("formDataToValue", formData)
+    if(state.schema.type === "array"){
       return JSON.stringify(formData.value)
-    }else if(state.schema.type == "string"){
+    }else if(state.schema.type === "string"){
       return formData.value
     }else if( ["integer", "number"].indexOf(state.schema.type) >= 0 ){
       return formData.value
     }else{
       return JSON.stringify(formData)
     }
-
   }
-  function saveConfig() {
-    let form_data = {...state.form_data, value: formDataToValue(state.schema_value) }
-    return fetch('http://localhost:5001/api/cog', {
-      method: 'POST', // or 'PUT'
-      headers: {'Content-Type': 'application/json', },
-      body: JSON.stringify({cog: form_data}),
+
+  function valueToFormData(value) {
+    if(!state.loaded)
+      return {};
+    if(state.schema.type === "array"){
+      return {value: JSON.parse(value)}
+    }else if(state.schema.type === "string"){
+      return {value: value}
+    }else if( ["integer", "number"].indexOf(state.schema.type) >= 0 ){
+      return {value: Number(value)}
+    }else{
+      return JSON.parse(value)
+    }
+  }
+
+  function setSchema(schemaJson) {
+    if(schemaJson.type !== "object")
+      schemaJson = {"type" : "object", "properties" : { "value" : schemaJson}};
+    setState({...state,schema: schemaJson, loaded: true })
+  }
+
+  useEffect(() => {
+    if(notEmpty(schemaName)){
+      apiCall('/api/sch/' + schemaName)
+      .then(({status, json}) => {
+        if(status == 200){
+          let {data: {value}} = json
+          setSchema(JSON.parse(value))
+        }
+      })
+    }
+    return function cleanUp(){
+      setState({schema: {}, loaded: false})
+    }
+  }, [schemaName])
+
+
+  if(schemaName === null){
+    return <Pane align="center" paddingTop={100}>
+      <FormIcon size={80} color="muted" />
+      <Heading size={700} marginTop={30} color="muted">Schema Form</Heading>
+    </Pane>
+  }else{
+    return <JSForm
+    schema={state.schema}
+    formData={ valueToFormData(schemaValue)}
+    onSubmit={ (x) => onSubmit(formDataToValue(x.formData)) }
+    onChange={ (x) => onChange(formDataToValue(x.formData)) }
+    />
+  }
+}
+
+export default function ConfigPage (argument) {
+  const [state, setState] = useState({
+    saving: false,
+    loaded: false,
+    notFound: false,
+    schema_list: [],
+    schema: null,
+    form_data: { name: null, schema: null, namespace: null, value: null },
+    schema_form_data: {}
+  })
+
+  const stateUpdater = formState(state, setState)
+  const {name: configName, namespace} = useParams()
+
+  function saveConfig(value) {
+    console.log('saveConfig', value)
+    console.log('state.form_data.value', state.form_data.value)
+    return apiCall('/api/cog', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json' },
+      body: JSON.stringify({cog: {...state.form_data, value}}),
     })
-    .then(response => {
-      toaster.success("Schema saved 🎉")
-      setState({...state, saving: false, loaded: true})
-      response.json()
+    .then( ({status, json}) => {
+      if(status == 200){
+        toaster.success("Schema saved 🎉")
+        setState({...state, saving: false, loaded: true})
+      }
     })
     .catch((error) => {
+      console.log(error)
       toaster.danger("Sorry, there is issue connecting to API")
       setState({...state, saving: false})
     });
   }
+  function fetchSchema(currentValue) {
+      if(currentValue.length < 3)
+        return ;
+      apiCall("/api/search", {
+        method: 'POST',
+        body: JSON.stringify({scope: "schemas", keyword: currentValue}),
+      })
+      .then(({status, json}) => {
+        if(status == 200){
+          setState({...state,schema_list: json.data.schemas.map(x => x.name) })
+        }
+      })
+  }
 
   useEffect(() => {
-    if(configName != null && namespace != null)
-      getConfig((data) => {
-        getSchema(data.schema, (schema) => {
-          let schemaJson = JSON.parse(schema.value)
-          setState({...state,
-            schema: schemaJson,
-            schema_value: valueToFormData(data.value),
-            form_data: data,
-            loaded: true})
-        })
-      });
+    if(configName !== undefined && namespace !== undefined){
+      apiCall('/api/cog/' + namespace + '/' + configName)
+      .then(({status, json})=> {
+        let {data} = json
+        if(status === 404){
+          setState({...state, notFound: true})
+          return Promise.resolve(undefined)
+        }
+        if(status === 200){
+          setState({...state, loaded: true, form_data: data })
+        }
+      })
+    }
     return function cleanUp(){
-      setState({...state, form_data: {}, loaded: false, schema_value: {}, schema: {} })
+      setState({ form_data: {}, loaded: false})
     }
   }, [configName, namespace])
-
-  function fetchSchema(currentValue) {
-    if(currentValue.length < 3)
-      return ;
-    fetch('http://localhost:5001/api/search', {
-      method: 'POST', // or 'PUT'
-      headers: {'Content-Type': 'application/json', },
-      body: JSON.stringify({scope: "schemas", keyword: currentValue}),
-    })
-    .then(resp => resp.ok ? resp.json() : raiseError(resp.status))
-    .then(json =>  setState({...state , schema_list: json.data.schemas.map(x => x.name) }))
-    .catch(error => {
-      console.log(error.message)
-      if(error.message === "404"){
-        setState({...state, notFound: true, loaded: true})
-      }else{
-        toasterError(error)
-      }
-    })
-  }
-
-  function setFormData(formData) {
-    setState({...state, schema_value: formData})
-    saveConfig()
-  }
-
 
   return (
     <Pane>
@@ -222,7 +215,7 @@ export default function ConfigPage (argument) {
                   .map(value => ({ label: value, value: value }))
               }
               selected={state.form_data.schema}
-              onSelect={stateUpdater('schema', (e) => e.value)}
+              onSelect={ stateUpdater('schema', (e) => e.value) }
               filterPlaceholder={"Choose a schema"}
               filterIcon={DocumentIcon}
               onFilterChange={fetchSchema}
@@ -233,10 +226,10 @@ export default function ConfigPage (argument) {
           </Pane>
         </Pane>
         <SchemaForm
-          schemaName={state.form_data.schema}
-          schemaObject={state.schema}
-          formData={ state.schema_value }
-          onSubmit={(x) => setFormData(x.formData) }
+          schemaName={ state.form_data.schema }
+          schemaValue={ state.form_data.value }
+          onSubmit={ saveConfig }
+          onChange={ stateUpdater('value') }
           onError={(x) => console.log('onError', x)} />
       </Pane>
     </Pane>

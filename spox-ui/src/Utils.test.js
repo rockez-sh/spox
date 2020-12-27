@@ -99,3 +99,22 @@ test("apiCall callback with function", done => {
     done()
   })
 })
+
+test("apiCall return promise when no callback", done => {
+  let resp = {
+    ok: true,
+    status: 201,
+    json: async () => ({success: true}),
+  }
+  window.fetch.mockResolvedValueOnce(resp)
+
+  let cb = jest.fn( ({status, json}) => {
+    expect(status).toEqual(201)
+    expect(json).toEqual({success: true})
+    done()
+  })
+
+  apiCall("/api/sch",
+    {method: "POST", body: `{"name":"sample"}`
+  }).then(cb)
+})

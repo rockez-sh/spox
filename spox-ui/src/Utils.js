@@ -13,10 +13,14 @@ function formState(state, setState, form_state_attribute="form_data") {
           value = e.target.value;
         else if(e.value)
           value = e.value;
+        else
+          value = e;
       }
 
       let form_data = {...state[form_state_attribute], [attribute]: value}
-      setState({...state, [form_state_attribute]: form_data})
+      let newState = {...state, [form_state_attribute]: form_data}
+      setState(newState)
+      return Promise.resolve(value)
     }
   }
 }
@@ -41,7 +45,9 @@ function humanizeString(string) {
   }).join(' ')
 }
 
-function apiCall(path, options, callback, failCallback ) {
+function apiCall(path, opt, callback, failCallback ) {
+    let options = notEmpty(opt) ? opt : {}
+
     return fetch('http://localhost:5001' + path, options)
     .then( async resp => {
       let json = await resp.json()
@@ -55,17 +61,24 @@ function apiCall(path, options, callback, failCallback ) {
         }
       }else if(typeof callback == "function"){
         callback(status, json)
+      }else{
+        return Promise.resolve({status, json})
       }
     })
     .catch((error) => {
       failCallback(error, true)
     });
 }
+
+function notEmpty(value) {
+  return ([undefined, null, "", {}].indexOf(value) == -1)
+}
 export {
   formState,
   humanizeString,
   toasterError,
   raiseError,
-  apiCall
+  apiCall,
+  notEmpty
 }
 
