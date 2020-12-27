@@ -43,7 +43,8 @@ defmodule Core.ConfigService do
       version: changeset.version,
       value: changeset.value,
       name: changeset.name,
-      schema: changeset |> schema_name!
+      schema: changeset |> schema_name!,
+      namespace: changeset.namespace
     }
   end
 
@@ -57,7 +58,8 @@ defmodule Core.ConfigService do
     %{
       id: changeset.id,
       version: changeset.version,
-      name: changeset.name
+      name: changeset.name,
+      name: changeset.namespace
     }
   end
 

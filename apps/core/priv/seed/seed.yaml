@@ -40,6 +40,12 @@ schemas:
           "currency_symbol" : {"type" : "string"}
         }
       }
+  - name: sys.authorized_email_receiver
+    value: |
+      {
+        "type": "string",
+        "pattern": "^[a-z.]+@(example.com|domain.co.id)$"
+      }
 configs:
   - name: sys.middleware.service_a
     schema: sys.middleware
@@ -112,7 +118,6 @@ configs:
         "currency" : "SGD",
         "currency_symbol" : "SG$"
       }
-
   - name: ops.conversion_email_report_receiver
     namespace: sys
     value: "fin@xyz.com"

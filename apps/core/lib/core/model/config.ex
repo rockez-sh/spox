@@ -17,7 +17,7 @@ defmodule Core.Model.Config do
 
   def changeset(struct, params) do
     struct
-    |> cast(params, [
+    |> cast(params |> Map.put(:datatype, "object"), [
       :name,
       :value,
       :schema_id,

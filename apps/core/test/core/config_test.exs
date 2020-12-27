@@ -108,7 +108,14 @@ defmodule Core.ConfigTest do
       Fixture.cog_object_valid()
       |> ConfigService.create()
 
-    assert %{name: cfg.name, version: cfg.version, value: cfg.value, schema: sch.name, id: cfg.id} ==
+    assert %{
+             name: cfg.name,
+             version: cfg.version,
+             value: cfg.value,
+             schema: sch.name,
+             id: cfg.id,
+             namespace: cfg.namespace
+           } ==
              cfg |> ConfigService.as_json()
   end
 

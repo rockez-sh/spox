@@ -11,6 +11,7 @@ defmodule HttpApi.Endpoints do
   alias Core.SchemaService
   alias Core.CollectionService
   alias Core.Utils.EctoError
+  require Logger
 
   post "/api/cog" do
     case conn.body_params
@@ -21,9 +22,11 @@ defmodule HttpApi.Endpoints do
         {:ok, cs |> ConfigService.as_json() |> Poison.encode!()}
 
       {:error, stage, error} ->
+        Logger.error(error |> inspect)
         {:malformed_data, response_error(:create_cog, stage, error) |> Poison.encode!()}
 
-      _ ->
+      x ->
+        Logger.error(x |> inspect)
         {:server_error, "unknow error"}
     end
     |> handle_response(conn)
