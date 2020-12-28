@@ -71,7 +71,18 @@ function apiCall(path, opt, callback, failCallback ) {
 }
 
 function notEmpty(value) {
-  return ([undefined, null, "", {}].indexOf(value) == -1)
+  return !isEmpty(value)
+}
+
+function isEmpty(value){
+  if(typeof value.length == "number" && value.length == 0){
+    return true;
+  }else{
+    if( value === undefined || value === null || value === "")
+      return true;
+    else
+      return false;
+  }
 }
 export {
   formState,
@@ -79,6 +90,7 @@ export {
   toasterError,
   raiseError,
   apiCall,
-  notEmpty
+  notEmpty,
+  isEmpty
 }
 
