@@ -12,6 +12,7 @@ import HomePage from './pages/HomePage'
 import ConfigPage from './pages/ConfigPage'
 import CollectionPage from './pages/CollectionPage'
 import SchemaPage from './pages/SchemaPage'
+import SearchPage from './pages/SearchPage'
 
 function App() {
   return (
@@ -27,6 +28,7 @@ function App() {
               <Route path="/config/:namespace?/:name?"><ConfigPage/></Route>
               <Route path="/collection"><CollectionPage/></Route>
               <Route path="/schema/:name?"><SchemaPage/></Route>
+              <Route path="/search"><SearchPage/></Route>
               <Route path="/"> <HomePage/> </Route>
             </Switch>
           </Pane>

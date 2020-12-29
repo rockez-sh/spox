@@ -14,14 +14,15 @@ import {
   toaster
 } from 'evergreen-ui'
 import JSForm from "../lib/rjs_form";
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   humanizeString,
   formState,
   raiseError,
   toasterError,
   apiCall,
-  notEmpty
+  notEmpty,
+  isEmpty
 } from '../Utils';
 
 import {
@@ -48,33 +49,34 @@ function SchemaForm(props) {
     if(state.schema.type === "array"){
       return JSON.stringify(formData.value)
     }else if(state.schema.type === "string"){
-      return formData.value
+      return isEmpty(formData.value) ? "" : formData.value
     }else if( ["integer", "number"].indexOf(state.schema.type) >= 0 ){
-      return formData.value
+      return isEmpty(formData.value) ? 0 : Number(formData.value)
     }else{
       return JSON.stringify(formData)
     }
   }
 
-  function valueToFormData(value) {
+  const valueToFormData = useMemo(() =>  {
     if(!state.loaded)
       return {};
     if(state.schema.type === "array"){
-      return {value: JSON.parse(value)}
+      return {value: JSON.parse(schemaValue)}
     }else if(state.schema.type === "string"){
-      return {value: value}
+      return {value: isEmpty(schemaValue) ? "" : schemaValue}
     }else if( ["integer", "number"].indexOf(state.schema.type) >= 0 ){
-      return {value: Number(value)}
+      return {value: isEmpty(schemaValue) ? 0 : Number(schemaValue)}
     }else{
-      return JSON.parse(value)
+      return JSON.parse(schemaValue)
     }
-  }
+  }, [schemaValue, state.loaded])
 
-  function setSchema(schemaJson) {
-    if(schemaJson.type !== "object")
-      schemaJson = {"type" : "object", "properties" : { "value" : schemaJson}};
-    setState({...state,schema: schemaJson, loaded: true })
-  }
+  const schemaWrapper = useMemo( () => {
+    if(state.schema.type !== "object")
+      return {"type" : "object", "properties" : { "value" : state.schema}};
+    else
+      return state.schema;
+  }, [schemaName, state.loaded])
 
   useEffect(() => {
     if(notEmpty(schemaName)){
@@ -82,7 +84,7 @@ function SchemaForm(props) {
       .then(({status, json}) => {
         if(status == 200){
           let {data: {value}} = json
-          setSchema(JSON.parse(value))
+          setState({...state, schema: JSON.parse(value), loaded: true})
         }
       })
     }
@@ -99,8 +101,8 @@ function SchemaForm(props) {
     </Pane>
   }else{
     return <JSForm
-    schema={state.schema}
-    formData={ valueToFormData(schemaValue)}
+    schema={ schemaWrapper }
+    formData={ valueToFormData }
     onSubmit={ (x) => onSubmit(formDataToValue(x.formData)) }
     onChange={ (x) => onChange(formDataToValue(x.formData)) }
     >
@@ -172,7 +174,7 @@ export default function ConfigPage (argument) {
       })
     }
     return function cleanUp(){
-      setState({ form_data: {}, loaded: false})
+      setState({...state, form_data: {}, loaded: false})
     }
   }, [configName, namespace])
 
@@ -235,7 +237,7 @@ export default function ConfigPage (argument) {
           schemaName={ state.form_data.schema }
           schemaValue={ state.form_data.value }
           onSubmit={ saveConfig }
-          onChange={ stateUpdater('value') }
+          onChange={ stateUpdater('value', v => v) }
           onError={(x) => console.log('onError', x)} />
       </Pane>
     </Pane>

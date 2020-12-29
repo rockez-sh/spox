@@ -2,11 +2,15 @@ import {
   toaster
 } from 'evergreen-ui';
 
+import {
+  useLocation
+} from "react-router-dom";
+
 function formState(state, setState, form_state_attribute="form_data") {
   return function(attribute, getter) {
     return function(e){
       let value = null
-      if(getter)
+      if(typeof getter === "function")
         value = getter(e) ;
       else {
         if(e.target)
@@ -75,15 +79,19 @@ function notEmpty(value) {
 }
 
 function isEmpty(value){
-  if(typeof value.length == "number" && value.length == 0){
+  if( value === undefined || value === null || value === "")
+      return true;
+  else if (typeof value.length === "number" && value.length === 0){
     return true;
   }else{
-    if( value === undefined || value === null || value === "")
-      return true;
-    else
-      return false;
+    return false;
   }
 }
+
+function useQuery() {
+  return new URLSearchParams(useLocation().search);
+}
+
 export {
   formState,
   humanizeString,
@@ -91,6 +99,7 @@ export {
   raiseError,
   apiCall,
   notEmpty,
-  isEmpty
+  isEmpty,
+  useQuery
 }
 

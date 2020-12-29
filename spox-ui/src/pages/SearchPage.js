@@ -2,16 +2,24 @@ import MainMenu from "../MainMenu";
 import {Pane, Heading, TextInput, Text, Table, Button, EditIcon, SearchInput, Spinner,
 CircleArrowRightIcon
 } from 'evergreen-ui';
-import { useState, useEffect } from 'react';
+import { useState, useEffect,useCallback, useMemo } from 'react';
 import {
   notEmpty,
   isEmpty,
-  apiCall
+  apiCall,
+  useQuery
 } from '../Utils';
-
+import {
+  useHistory
+} from "react-router-dom";
 
 const DELAY_SEARCH = 500;
 var typingTimer ;
+const EMPTY_OBJECT = {
+    configs: [],
+    collections: [],
+    schemas: []
+  }
 function ResultGroup({name, results}) {
     if (isEmpty(results)){
       return <div></div>
@@ -32,33 +40,25 @@ function ResultGroup({name, results}) {
             </Pane>
           </Pane>
 }
-export default function HomePage(){
+
+export default function SearchPage(){
+    let query = useQuery().get('q');
+    let history = useHistory();
+
     const [state, setState] = useState({
-      engaged: false,
       typing: false,
       lastTyping: 0,
       searching: false,
       term: null,
-      results: {
-        configs: [],
-        collections: [],
-        schemas: []
-      }
+      results: EMPTY_OBJECT
     })
-    const {engaged} = state
-    function setEngaged(){
-      setState({...state, engaged: true});
-    }
-    function apiSearch(value){
-      if(isEmpty(value)){
-        return setState({...state, results: {
-          configs: [],
-          collections: [],
-          schemas: []}
-        })
+
+    const apiSearch = (value) => {
+      if(isEmpty(value) ){
+        return setState( (s) => { return {...s, results: EMPTY_OBJECT } } )
       }
 
-      setState({...state, searching: true})
+      setState( (st) => { return { ...st, searching: true} } )
       apiCall("/api/search", {
         method: 'POST',
         headers: {'Content-Type': 'application/json' },
@@ -66,36 +66,44 @@ export default function HomePage(){
       })
       .then(({status, json}) => {
         if(status == 200){
-         setState({...state, searching: false, engaged: true, results: json.data})
+         setState( (s) => { return { ...s, searching: false, results: json.data} } )
         }
       })
     }
+
     function typeSearch(x){
-      setState({...state, typing: true, lastTyping: Date.now()})
-      clearTimeout(typingTimer);
       let value = x.target.value
+      setState({...state, typing: true, lastTyping: Date.now(), term: value  })
+      clearTimeout(typingTimer);
 
       typingTimer = setTimeout(() => {
         let {lastTyping} = state
         let delta = Date.now() - lastTyping
         if(delta >= DELAY_SEARCH){
-          apiSearch(value);
+          history.push({
+            pathname: '/search',
+            search: '?'+ new URLSearchParams({q: value}).toString()
+          })
         }
       }, DELAY_SEARCH)
     }
 
+    useEffect(()=>{
+      apiSearch(query)
+    }, [query])
+
     return (
-      <Pane marginTop={engaged ? 0 : 250}>
+      <Pane marginTop={0}>
         <Pane display="flex">
           <Pane width="75%">
-            <Heading size={900} marginBottom={30}>Spox</Heading>
+            <Heading size={700} marginBottom={0}>Spox</Heading>
           </Pane>
           <Pane width="25%" align="right">
             <MainMenu/>
           </Pane>
         </Pane>
         <Pane position="relative">
-          <SearchInput width="100%" height={48} placeholder="Start Search your config" onChange={typeSearch} />
+          <SearchInput width="100%" height={48} placeholder="Start Search your config" onChange={typeSearch} value={ state.term === null ? query : state.term}/>
           <Spinner size={24} position="absolute" top={12} right={20} zIndex={state.searching ? 100 : -100}/>
         </Pane>
         <Pane marginTop={50}>
