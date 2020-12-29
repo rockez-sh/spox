@@ -23,6 +23,18 @@ defmodule Core.Fixture do
     }
   end
 
+  def schema_generic_number_above_100 do
+    %{
+      name: "genric.number",
+      value: """
+      {
+        "type" : "number",
+        "minimum" : 100
+      }
+      """
+    }
+  end
+
   def cog_object_valid do
     %{
       name: "merchant_email_receiver",

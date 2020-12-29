@@ -65,6 +65,29 @@ defmodule Core.ConfigTest do
              |> ConfigService.create()
   end
 
+  test "validate schema non object" do
+    {:ok, schema_cs} = Fixture.schema_generic_number_above_100() |> SchemaService.create()
+
+    {:ok, _} =
+      ConfigService.create(%{
+        name: "number_100",
+        value: 100,
+        namespace: "default",
+        schema: schema_cs.name
+      })
+
+    {:error, stage, error} =
+      ConfigService.create(%{
+        name: "number_under_100",
+        value: 99,
+        namespace: "default",
+        schema: schema_cs.name
+      })
+
+    assert stage == :validate_schema
+    assert [{"Expected the value to be >= 100", "#"} | _] = error
+  end
+
   test "creating cog happen in transactional" do
     {:ok, _} = Fixture.cog_string_valid() |> ConfigService.create()
 

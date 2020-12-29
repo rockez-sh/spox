@@ -59,7 +59,7 @@ defmodule Core.ConfigService do
       id: changeset.id,
       version: changeset.version,
       name: changeset.name,
-      name: changeset.namespace
+      namespace: changeset.namespace
     }
   end
 
@@ -199,7 +199,7 @@ defmodule Core.ConfigService do
         case schema.value
              |> Poison.decode!()
              |> ExJsonSchema.Schema.resolve()
-             |> ExJsonSchema.Validator.validate(value |> Poison.decode!()) do
+             |> ExJsonSchema.Validator.validate(value |> normalize_value |> Poison.decode!()) do
           :ok ->
             attrs = attrs |> Map.delete(:schema) |> Map.put(:schema_id, schema.id)
             {:ok, attrs}
@@ -209,6 +209,9 @@ defmodule Core.ConfigService do
         end
     end
   end
+
+  defp normalize_value(value) when is_integer(value), do: "#{value}"
+  defp normalize_value(value), do: value
 
   defp validate_schema(%{assign_collection: attrs}), do: {:ok, attrs}
 

@@ -16,8 +16,13 @@ defmodule Core.Model.Config do
   end
 
   def changeset(struct, params) do
+    params =
+      params
+      |> normalize_value
+      |> Map.put(:datatype, "object")
+
     struct
-    |> cast(params |> Map.put(:datatype, "object"), [
+    |> cast(params, [
       :name,
       :value,
       :schema_id,
@@ -30,4 +35,10 @@ defmodule Core.Model.Config do
     |> validate_required([:name, :value, :namespace])
     |> unique_constraint([:name, :namespace, :version])
   end
+
+  def normalize_value(%{value: value} = params) when is_number(value) do
+    params |> Map.put(:value, "#{value}")
+  end
+
+  def normalize_value(params), do: params
 end
