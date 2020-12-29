@@ -14,7 +14,7 @@ import {
 } from "evergreen-ui";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { notEmpty, isEmpty, apiCall, useQuery } from "../Utils";
-import { useHistory } from "react-router-dom";
+import { useHistory, Link } from "react-router-dom";
 
 const DELAY_SEARCH = 500;
 var typingTimer;
@@ -23,7 +23,7 @@ const EMPTY_OBJECT = {
   collections: [],
   schemas: [],
 };
-function ResultGroup({ name, results }) {
+function ResultGroup({ name, results, linkTo }) {
   if (isEmpty(results)) {
     return <div></div>;
   }
@@ -31,7 +31,8 @@ function ResultGroup({ name, results }) {
     <Pane marginBottom={20}>
       <Heading size={600}>{name}</Heading>
       <Pane paddingTop={20}>
-        {results.map(({ name }, index) => {
+        {results.map((item, index) => {
+          const { name } = item;
           return (
             <Table.Row key={index} height={32}>
               <Table.TextCell flexBasis={560} flexShrink={0} flexGrow={0}>
@@ -42,9 +43,10 @@ function ResultGroup({ name, results }) {
                   marginRight={16}
                   appearance="minimal"
                   iconBefore={EditIcon}
+                  is={Link}
+                  to={linkTo(item)}
                 >
-                  {" "}
-                  edit{" "}
+                  edit
                 </Button>
               </Table.TextCell>
             </Table.Row>
@@ -160,9 +162,21 @@ export default function SearchPage() {
         <Text> What your search unfortunately not found or doesn't exist</Text>
       </Pane>
       <Pane marginTop={50} display={emptyResult() ? "none" : "inherit"}>
-        <ResultGroup name="Config" results={state.results.configs} />
-        <ResultGroup name="Collections" results={state.results.collections} />
-        <ResultGroup name="schemas" results={state.results.schemas} />
+        <ResultGroup
+          name="Config"
+          results={state.results.configs}
+          linkTo={({ name, namespace }) => `/config/${namespace}/${name}`}
+        />
+        <ResultGroup
+          name="Collections"
+          results={state.results.collections}
+          linkTo={() => "/"}
+        />
+        <ResultGroup
+          name="schemas"
+          results={state.results.schemas}
+          linkTo={({ name }) => `/schema/${name}`}
+        />
       </Pane>
     </Pane>
   );
