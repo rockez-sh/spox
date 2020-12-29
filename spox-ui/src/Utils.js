@@ -47,7 +47,7 @@ function apiCall(path, opt, callback, failCallback) {
   const { headers: userHeaders } = options;
   const headers = { ...defaultHeaders, ...(userHeaders || {}) };
 
-  return fetch("http://localhost:5001" + path, { ...options, headers })
+  return fetch(apiHost() + path, { ...options, headers })
     .then(async (resp) => {
       let json = await resp.json();
       let status = resp.status;
@@ -70,6 +70,10 @@ function apiCall(path, opt, callback, failCallback) {
 
 function notEmpty(value) {
   return !isEmpty(value);
+}
+
+function apiHost() {
+  return "http://localhost:5001";
 }
 
 function isEmpty(value) {
