@@ -138,10 +138,7 @@ export default function ConfigPage(argument) {
       .then(({ status, json }) => {
         if (status == 200) {
           toaster.success("Schema saved 🎉");
-          setTimeout(
-            () => setState({ ...state, saving: false, loaded: true }),
-            2000
-          );
+          setState({ ...state, saving: false, loaded: true });
         }
       })
       .catch((error) => {
