@@ -10,6 +10,7 @@ defmodule Core.Model.Config do
     field(:schema_id, :string)
     field(:collection_id, :string)
     field(:latest, :boolean)
+    field(:desc, :string)
     field(:namespace, :string)
     timestamps()
   end
@@ -27,6 +28,7 @@ defmodule Core.Model.Config do
       :collection_id,
       :version,
       :latest,
+      :desc,
       :namespace
     ])
     |> validate_required([:name, :value, :namespace])

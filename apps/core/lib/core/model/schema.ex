@@ -6,6 +6,7 @@ defmodule Core.Model.Schema do
   schema "sch" do
     field(:name, :string)
     field(:value, :binary)
+    field(:desc, :string)
     timestamps()
   end
 
@@ -13,7 +14,8 @@ defmodule Core.Model.Schema do
     struct
     |> cast(params, [
       :name,
-      :value
+      :value,
+      :desc
     ])
     |> validate_required([:name, :value])
     |> unique_constraint(:sch, name: :schema_name_unique_index)
