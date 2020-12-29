@@ -13,7 +13,7 @@ import JSONInput from "react-json-editor-ajrm";
 import locale from "react-json-editor-ajrm/locale/en";
 import { Link, useParams } from "react-router-dom";
 import NOTFOUND from "./NOT_FOUND";
-import { formState } from "../Utils";
+import { formState, apiCall } from "../Utils";
 
 import { useState, useEffect } from "react";
 import ActionPane from "../lib/ActionPane";
@@ -36,34 +36,25 @@ export default function SchemaPage() {
     if (!schemaName) return;
     if (state.loaded) return;
 
-    fetch("http://localhost:5001/api/sch/" + schemaName)
-      .then((resp) => (resp.ok ? resp.json() : raiseError(resp.status)))
-      .then((json) =>
-        setState({ ...state, form_data: json.data, loaded: true })
-      )
-      .catch((error) => {
-        if (error.message === "404") {
-          setState({ ...state, notFound: true, loaded: true });
-        }
-      });
-  });
+    apiCall("/api/sch/" + schemaName).then(({ status, json }) => {
+      if (status === 200)
+        setState({ ...state, form_data: json.data, loaded: true });
+      else if (status === 404)
+        setState({ ...state, notFound: true, loaded: true });
+    });
+  }, [schemaName, state.loaded]);
 
   function submit() {
     setState({ ...state, saving: true });
-    fetch("http://localhost:5001/api/sch", {
-      method: "POST", // or 'PUT'
-      headers: { "Content-Type": "application/json" },
+    apiCall("/api/sch", {
+      method: "POST",
       body: JSON.stringify({ sch: state.form_data }),
-    })
-      .then((response) => {
+    }).then(({ status, json }) => {
+      if (status == 200) {
         toaster.success("Schema saved 🎉");
         setState({ ...state, saving: false, loaded: true });
-        response.json();
-      })
-      .catch((error) => {
-        toaster.danger("Sorry, there is issue connecting to API");
-        setState({ ...state, saving: false });
-      });
+      }
+    });
   }
 
   if (state.notFound) return <NOTFOUND />;
