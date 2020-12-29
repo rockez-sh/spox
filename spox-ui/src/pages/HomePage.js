@@ -2,90 +2,50 @@ import MainMenu from "../MainMenu";
 import {Pane, Heading, TextInput, Text, Table, Button, EditIcon, SearchInput, Spinner,
 CircleArrowRightIcon
 } from 'evergreen-ui';
-import { useState, useEffect } from 'react';
+import { useState, useEffect,useCallback, useMemo } from 'react';
 import {
   notEmpty,
   isEmpty,
-  apiCall
+  apiCall,
+  useQuery
 } from '../Utils';
+import {
+  useHistory
+} from "react-router-dom";
 
+import { DELAY_SEARCH } from './SearchPage';
 
-const DELAY_SEARCH = 500;
 var typingTimer ;
-function ResultGroup({name, results}) {
-    if (isEmpty(results)){
-      return <div></div>
-    }
-    return <Pane marginBottom={20}>
-            <Heading size={600}>{name}</Heading>
-            <Pane paddingTop={20}>
-            {results.map(({name},index)=>{
-             return <Table.Row key={index} height={32}>
-                <Table.TextCell  flexBasis={560} flexShrink={0} flexGrow={0}>
-                  <Text size={500}>{name}</Text>
-                </Table.TextCell>
-                <Table.TextCell textAlign="right" padding={5}>
-                  <Button marginRight={16} appearance="minimal" iconBefore={EditIcon}> edit </Button>
-                </Table.TextCell>
-              </Table.Row>
-            })}
-            </Pane>
-          </Pane>
-}
-export default function HomePage(){
+
+export default function SearchPage(){
+    let query = useQuery().get('q');
+    let history = useHistory();
+
     const [state, setState] = useState({
-      engaged: false,
       typing: false,
       lastTyping: 0,
-      searching: false,
       term: null,
-      results: {
-        configs: [],
-        collections: [],
-        schemas: []
-      }
     })
-    const {engaged} = state
-    function setEngaged(){
-      setState({...state, engaged: true});
-    }
-    function apiSearch(value){
-      if(isEmpty(value)){
-        return setState({...state, results: {
-          configs: [],
-          collections: [],
-          schemas: []}
-        })
-      }
 
-      setState({...state, searching: true})
-      apiCall("/api/search", {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json' },
-        body: JSON.stringify({ keyword: value}),
-      })
-      .then(({status, json}) => {
-        if(status == 200){
-         setState({...state, searching: false, engaged: true, results: json.data})
-        }
-      })
-    }
     function typeSearch(x){
-      setState({...state, typing: true, lastTyping: Date.now()})
-      clearTimeout(typingTimer);
       let value = x.target.value
+      setState({...state, typing: true, lastTyping: Date.now(), term: value  })
+      clearTimeout(typingTimer);
 
       typingTimer = setTimeout(() => {
         let {lastTyping} = state
         let delta = Date.now() - lastTyping
         if(delta >= DELAY_SEARCH){
-          apiSearch(value);
+          history.push({
+            pathname: '/search',
+            search: '?'+ new URLSearchParams({q: value}).toString()
+          })
         }
       }, DELAY_SEARCH)
     }
 
     return (
-      <Pane marginTop={engaged ? 0 : 250}>
+      <Pane marginTop={250}>
         <Pane display="flex">
           <Pane width="75%">
             <Heading size={900} marginBottom={30}>Spox</Heading>
@@ -95,13 +55,8 @@ export default function HomePage(){
           </Pane>
         </Pane>
         <Pane position="relative">
-          <SearchInput width="100%" height={48} placeholder="Start Search your config" onChange={typeSearch} />
+          <SearchInput width="100%" height={48} placeholder="Start Search your config" onChange={typeSearch} value={ state.term }/>
           <Spinner size={24} position="absolute" top={12} right={20} zIndex={state.searching ? 100 : -100}/>
-        </Pane>
-        <Pane marginTop={50}>
-          <ResultGroup name="Config" results={state.results.configs}  />
-          <ResultGroup name="Collections" results={state.results.collections}  />
-          <ResultGroup name="schemas" results={state.results.schemas}  />
         </Pane>
       </Pane>
     )

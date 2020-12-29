@@ -40,7 +40,7 @@ function ResultGroup({name, results}) {
             </Pane>
           </Pane>
 }
-
+export { DELAY_SEARCH } ;
 export default function SearchPage(){
     let query = useQuery().get('q');
     let history = useHistory();
