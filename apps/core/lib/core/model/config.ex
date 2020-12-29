@@ -10,7 +10,6 @@ defmodule Core.Model.Config do
     field(:schema_id, :string)
     field(:collection_id, :string)
     field(:latest, :boolean)
-    field(:datatype, :string)
     field(:namespace, :string)
     timestamps()
   end
@@ -19,7 +18,6 @@ defmodule Core.Model.Config do
     params =
       params
       |> normalize_value
-      |> Map.put(:datatype, "object")
 
     struct
     |> cast(params, [
@@ -29,7 +27,6 @@ defmodule Core.Model.Config do
       :collection_id,
       :version,
       :latest,
-      :datatype,
       :namespace
     ])
     |> validate_required([:name, :value, :namespace])
