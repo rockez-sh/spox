@@ -42,9 +42,12 @@ function humanizeString(string) {
 }
 
 function apiCall(path, opt, callback, failCallback) {
-  let options = notEmpty(opt) ? opt : {};
+  const defaultHeaders = { "Content-Type": "application/json" };
+  const options = notEmpty(opt) ? opt : {};
+  const { headers: userHeaders } = options;
+  const headers = { ...defaultHeaders, ...(userHeaders || {}) };
 
-  return fetch("http://localhost:5001" + path, options)
+  return fetch("http://localhost:5001" + path, { ...options, headers })
     .then(async (resp) => {
       let json = await resp.json();
       let status = resp.status;
