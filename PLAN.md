@@ -7,8 +7,8 @@
 - [x] TCP fetching COG / COl
 - [x] API Search Global COG , COL & SCHEMA
 - [x] Base UI
-- [ ] UI Listing/Search COG
-- [ ] UI Create/update COG
+- [x] UI Listing/Search COG
+- [x] UI Create/update COG
 - [x] UI Create/update SCH
 - [ ] MPV RELEASE
 - [ ] Ruby Client
