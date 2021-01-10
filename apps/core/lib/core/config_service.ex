@@ -276,10 +276,16 @@ defmodule Core.ConfigService do
     end
   end
 
+  defp demod(value) when is_integer(value), do: value
+
   defp demod(value) do
-    value
-    |> Poison.decode!()
-    |> Poison.encode!()
+    if String.match?(value |> String.trim(), ~r/^(\{.*\}|\[.*\])\s?$/ms) do
+      value
+      |> Poison.decode!()
+      |> Poison.encode!()
+    else
+      value
+    end
   end
 
   # defp promote_latest(created_config) do

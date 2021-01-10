@@ -288,14 +288,7 @@ defmodule Core.ConfigTest do
   end
 
   describe "check the diff" do
-    setup do
-      fixture = Fixture.cog_string_valid()
-      # {:ok, cs} = fixture |> ConfigService.create()
-      {:ok, cs: :ok, fixture: fixture}
-    end
-
-    @tag focus: true
-    test "not updating when the json being resorted", %{fixture: fixture} do
+    test "not updating when the json being resorted" do
       fixture_obj = Fixture.cog_object_valid()
 
       new_value = """
@@ -328,6 +321,31 @@ defmodule Core.ConfigTest do
       assert 1 ==
                Repo.one(
                  from(p in Model.Config, select: count(p.id), where: p.name == ^fixture_obj[:name])
+               )
+    end
+
+    test "when the value is not a json string" do
+      {:ok, schema_cs} = Fixture.schema_generic_number_above_100() |> SchemaService.create()
+
+      {:ok, _} =
+        ConfigService.create(%{
+          name: "number_100",
+          value: 100,
+          namespace: "default",
+          schema: schema_cs.name
+        })
+
+      {:ok, _} =
+        ConfigService.create(%{
+          name: "number_100",
+          value: 100,
+          namespace: "default",
+          schema: schema_cs.name
+        })
+
+      assert 1 ==
+               Repo.one(
+                 from(p in Model.Config, select: count(p.id), where: p.name == "number_100")
                )
     end
   end
