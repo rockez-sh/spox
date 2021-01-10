@@ -14,22 +14,28 @@ defmodule Core.ConfigService do
          |> run(:assign_collection, &assign_collection/1, attrs)
          |> run(:validate_schema, &validate_schema/1)
          |> run(:define_default, &define_default_value/1)
-         |> run(:define_changeset, &define_changeset/1) do
-      {:ok, %{define_changeset: changeset}} ->
-        case Multi.new()
-             |> Multi.insert(:saving_cog, changeset)
-             |> Multi.run(:promote_collection, &promote_collection/2)
-             |> Multi.run(:old_cog, &promote_latest/2)
-             |> Multi.run(:redis_copy, &copy_to_redis/2)
-             |> Repo.transaction() do
-          {:ok, %{saving_cog: saving_cog}} ->
-            {:ok, saving_cog}
+         |> run(:defined_changeset, &define_changeset/1) do
+      {:ok, %{defined_changeset: changeset}} ->
+        case check_diff(changeset) do
+          {:ok} ->
+            case Multi.new()
+                 |> Multi.insert(:saving_cog, changeset)
+                 |> Multi.run(:promote_collection, &promote_collection/2)
+                 |> Multi.run(:old_cog, &promote_latest/2)
+                 |> Multi.run(:redis_copy, &copy_to_redis/2)
+                 |> Repo.transaction() do
+              {:ok, %{saving_cog: saving_cog}} ->
+                {:ok, saving_cog}
 
-          {:error, :saving_cog, repo, _} ->
-            {:error, :saving_cog, repo}
+              {:error, :saving_cog, repo, _} ->
+                {:error, :saving_cog, repo}
 
-          {:error, _, error_message, _} ->
-            {:error, error_message}
+              {:error, _, error_message, _} ->
+                {:error, error_message}
+            end
+
+          {:duplicated, cs} ->
+            {:ok, cs}
         end
 
       {:error, state, error} ->
@@ -158,6 +164,7 @@ defmodule Core.ConfigService do
   end
 
   defp define_changeset(%{define_default: attrs}) do
+    attrs = Map.put(attrs, :value, demod(attrs[:value]))
     {:ok, ConfigModel.changeset(%ConfigModel{}, attrs)}
   end
 
@@ -247,6 +254,32 @@ defmodule Core.ConfigService do
 
   defp copy_to_redis(_, %{saving_cog: changeset}) do
     copy_to_redis(changeset)
+  end
+
+  defp check_diff(new_cs) do
+    if new_cs.valid? do
+      %{name: name, namespace: namespace, value: value} = new_cs.changes
+
+      case find(name, namespace) do
+        nil ->
+          {:ok}
+
+        cs ->
+          if demod(value) == cs.value do
+            {:duplicated, cs}
+          else
+            {:ok}
+          end
+      end
+    else
+      {:ok}
+    end
+  end
+
+  defp demod(value) do
+    value
+    |> Poison.decode!()
+    |> Poison.encode!()
   end
 
   # defp promote_latest(created_config) do

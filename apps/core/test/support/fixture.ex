@@ -1,7 +1,7 @@
 defmodule Core.Fixture do
   def cog_string_valid do
     %{
-      name: "merchant_email_receiver",
+      name: "merchant_email_receiver_STR",
       value: "ops@example.com",
       datatype: "string",
       namespace: "default"

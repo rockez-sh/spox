@@ -286,4 +286,49 @@ defmodule Core.ConfigTest do
       assert length(result) == 0
     end
   end
+
+  describe "check the diff" do
+    setup do
+      fixture = Fixture.cog_string_valid()
+      # {:ok, cs} = fixture |> ConfigService.create()
+      {:ok, cs: :ok, fixture: fixture}
+    end
+
+    @tag focus: true
+    test "not updating when the json being resorted", %{fixture: fixture} do
+      fixture_obj = Fixture.cog_object_valid()
+
+      new_value = """
+      {
+        "attr_number" : 1,
+        "name" : "credit_card"
+      }
+
+      """
+
+      fixture_obj = fixture_obj |> Map.put(:value, new_value)
+      fixture_obj |> ConfigService.create()
+
+      assert 1 ==
+               Repo.one(
+                 from(p in Model.Config, select: count(p.id), where: p.name == ^fixture_obj[:name])
+               )
+
+      new_value = """
+      {
+        "name" : "credit_card",
+        "attr_number" : 1
+      }
+
+      """
+
+      fixture_obj = fixture_obj |> Map.put(:value, new_value)
+      {:ok, _} = fixture_obj |> ConfigService.create()
+
+      assert 1 ==
+               Repo.one(
+                 from(p in Model.Config, select: count(p.id), where: p.name == ^fixture_obj[:name])
+               )
+    end
+  end
 end
