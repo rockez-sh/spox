@@ -122,11 +122,34 @@ defmodule Core.CollectionService do
     end
   end
 
-  defp copy_to_redis(_repo, %{updated_col: col, cog: cog}) do
+  def add_config(collection, configs) do
+    add_config(Repo, collection, configs)
+  end
+
+  def add_config(repo, collection, configs) do
+    collection =
+      collection
+      |> repo.preload(:configs)
+      |> Collection.changeset(%{version: DateTime.utc_now() |> DateTime.to_unix(:millisecond)})
+      |> Ecto.Changeset.put_assoc(:configs, configs)
+      |> repo.update!
+
+    copy_to_redis(repo, %{updated_col: collection, cog: configs})
+    {:ok, collection}
+  end
+
+  defp copy_to_redis(_repo, %{updated_col: col, cog: cogs}) do
     commands = [
-      ["SET", "col:ver:#{col.namespace}.#{col.name}", col.version],
-      ["HSET", "col:val:#{col.namespace}.#{col.name}", cog.name, cog.value]
+      ["SET", "col:ver:#{col.namespace}.#{col.name}", col.version]
     ]
+
+    cog_commands =
+      cogs
+      |> Enum.map(fn cog ->
+        ["HSET", "col:val:#{col.namespace}.#{col.name}", cog.name, cog.value]
+      end)
+
+    commands = commands ++ cog_commands
 
     case Redis.transaction_pipeline(commands) do
       {:ok, _} -> {:ok, col}
@@ -136,10 +159,11 @@ defmodule Core.CollectionService do
 
   defp copy_to_redis(col) do
     cmds = [["SET", "col:ver:#{col.namespace}.#{col.name}", col.version]]
+    col = col |> Repo.preload(:configs)
 
     cog_cmds =
-      Config
-      |> where([c], c.collection_id == ^col.id)
+      Ecto.assoc(col, :configs)
+      |> where([c], c.latest == true)
       |> Repo.all()
       |> Enum.map(fn cog ->
         ["HSET", "col:val:#{col.namespace}.#{col.name}", cog.name, cog.value]

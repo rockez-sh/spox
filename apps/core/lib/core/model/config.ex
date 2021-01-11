@@ -1,6 +1,7 @@
 defmodule Core.Model.Config do
   use Ecto.Schema
   import Ecto.Changeset
+  alias Core.Model.Collection
 
   @primary_key {:id, :binary_id, autogenerate: true}
   schema "cog" do
@@ -8,10 +9,18 @@ defmodule Core.Model.Config do
     field(:value, :binary)
     field(:version, :integer)
     field(:schema_id, :string)
-    field(:collection_id, :string)
     field(:latest, :boolean)
     field(:desc, :string)
     field(:namespace, :string)
+
+    many_to_many(
+      :collections,
+      Collection,
+      join_through: "cog_col_ref",
+      on_replace: :delete,
+      join_keys: [col_id: :id, cog_id: :id]
+    )
+
     timestamps()
   end
 
@@ -25,7 +34,6 @@ defmodule Core.Model.Config do
       :name,
       :value,
       :schema_id,
-      :collection_id,
       :version,
       :latest,
       :desc,

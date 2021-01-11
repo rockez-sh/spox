@@ -181,18 +181,10 @@ defmodule Core.ConfigService do
   end
 
   defp promote_collection(repo, %{saving_cog: changeset}) do
-    case changeset.collection_id do
-      nil ->
-        {:ok, :ok}
-
-      cid ->
-        col_cs = Core.Model.Collection |> Repo.get(cid)
-
-        case CollectionService.touch(repo, col_cs, changeset) do
-          {:ok, cs} -> {:ok, cs}
-          {:error, message} -> {:error, message}
-        end
-    end
+    # changeset = changeset |> Repo.preload(:collections)
+    # changeset.collec
+    # |> Enum.each(fn collection -> CollectionService.touch(repo, collection, changeset)  end)
+    {:ok, :ok}
   end
 
   defp validate_schema(%{assign_collection: %{schema: schema_name, value: value} = attrs}) do
@@ -223,19 +215,7 @@ defmodule Core.ConfigService do
   defp validate_schema(%{assign_collection: attrs}), do: {:ok, attrs}
 
   defp assign_collection(%{collection: collection_name, namespace: namespace} = attrs) do
-    case collection_name do
-      nil ->
-        attrs
-
-      "" ->
-        attrs
-
-      _ ->
-        case CollectionService.find(collection_name, namespace) do
-          nil -> {:error, "collection not found"}
-          cs -> {:ok, attrs |> Map.put(:collection_id, cs.id)}
-        end
-    end
+    {:ok, attrs}
   end
 
   defp assign_collection(attrs), do: {:ok, attrs}

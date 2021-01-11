@@ -9,7 +9,15 @@ defmodule Core.Model.Collection do
     field(:version, :integer)
     field(:namespace, :string)
     field(:desc, :string)
-    has_many(:configs, Config)
+
+    many_to_many(
+      :configs,
+      Config,
+      join_through: "cog_col_ref",
+      on_replace: :delete,
+      join_keys: [col_id: :id, cog_id: :id]
+    )
+
     timestamps()
   end
 

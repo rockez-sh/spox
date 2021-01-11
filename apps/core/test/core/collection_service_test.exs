@@ -52,13 +52,13 @@ defmodule Core.CollectionServiceTest do
     end
 
     test "promoting version", %{col: col, cog: cog} do
-      {:ok, ncol} = touch(Repo, col, cog)
+      {:ok, ncol} = add_config(Repo, col, [cog])
       assert ncol.version > col.version
     end
 
     test "make copy to redis", %{col: col, cog: cog} do
       with_mock Redis, [:passthrough], [] do
-        {:ok, ncol} = touch(Repo, col, cog)
+        {:ok, ncol} = add_config(Repo, col, [cog])
 
         commands = [
           ["SET", "col:ver:#{col.namespace}.#{col.name}", ncol.version],
@@ -80,11 +80,10 @@ defmodule Core.CollectionServiceTest do
           Fixture.cog_string_valid()
           |> Map.put(:version, 0)
           |> Map.put(:latest, true)
-          |> Map.put(:collection_id, col.id)
         )
         |> Repo.insert()
 
-      {:ok, col} = touch(Repo, col, cog)
+      {:ok, col} = add_config(col, [cog])
       {:ok, col: col, cog: cog}
     end
 
@@ -146,16 +145,16 @@ defmodule Core.CollectionServiceTest do
     setup do
       {:ok, col} = Fixture.col_valid() |> create
 
-      {:ok, _} =
+      {:ok, cog_a} =
         Fixture.cog_string_valid()
-        |> Map.put(:collection, col.name)
         |> ConfigService.create()
 
-      {:ok, _} =
+      {:ok, cog_b} =
         Fixture.cog_string_valid()
         |> Map.put(:name, "ops_email_receiver")
-        |> Map.put(:collection, col.name)
         |> ConfigService.create()
+
+      add_config(col, [cog_a, cog_b])
 
       {:ok, col: col}
     end

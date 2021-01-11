@@ -218,42 +218,16 @@ defmodule Core.ConfigTest do
 
   describe "with collection" do
     setup do
-      col_name = "sample_collection"
-
       {:ok, col_cs} =
         Fixture.col_valid()
-        |> Map.put(:name, col_name)
         |> Core.CollectionService.create()
 
-      {:ok, col_name: col_name, col_cs: col_cs}
+      {:ok, col_cs: col_cs}
     end
 
-    test "it should link to collection id", %{col_cs: col_cs, col_name: col_name} do
-      fixture =
-        Fixture.cog_string_valid()
-        |> Map.put(:collection, col_name)
-
-      {:ok, cs} = fixture |> ConfigService.create()
-
-      assert cs.collection_id == col_cs.id
-    end
-
-    test "collection not found" do
-      fixture =
-        Fixture.cog_string_valid()
-        |> Map.put(:collection, "not_exist_collection")
-
-      {:error, :assign_collection, m} = fixture |> ConfigService.create()
-      assert m == "collection not found"
-    end
-
-    test "it should promote new version of collection", %{col_cs: col_cs, col_name: col_name} do
-      fixture =
-        Fixture.cog_string_valid()
-        |> Map.put(:collection, col_name)
-
-      {:ok, cs} = fixture |> ConfigService.create()
-      col = Core.CollectionService.find(col_name, cs.namespace)
+    test "it should promote new version of collection", %{col_cs: col_cs} do
+      {:ok, cs} = Fixture.cog_string_valid() |> ConfigService.create()
+      {:ok, col} = Core.CollectionService.add_config(col_cs, [cs])
       assert col.version > col_cs.version
     end
   end
