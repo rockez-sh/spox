@@ -223,12 +223,6 @@ defmodule Core.ConfigService do
   defp normalize_value(value) when is_integer(value), do: "#{value}"
   defp normalize_value(value), do: value
 
-  defp assign_collection(%{collection: collection_name, namespace: namespace} = attrs) do
-    {:ok, attrs}
-  end
-
-  defp assign_collection(attrs), do: {:ok, attrs}
-
   defp copy_to_redis(changeset) do
     commands = [
       ["SET", "cog:val:#{changeset.namespace}.#{changeset.name}", changeset.value],
