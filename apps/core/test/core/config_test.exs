@@ -7,6 +7,7 @@ defmodule Core.ConfigTest do
   alias Core.Repo
   import Ecto.Query
   alias Core.SchemaService
+  require Logger
 
   import Mock
 
@@ -89,15 +90,14 @@ defmodule Core.ConfigTest do
   end
 
   test "creating cog happen in transactional" do
-    {:ok, _} = Fixture.cog_string_valid() |> ConfigService.create()
+    {:ok, cs} = Fixture.cog_string_valid() |> ConfigService.create()
 
-    with_mock Core.Repo, [:passthrough], update_all: fn _, _ -> {:error, "DB CONNECT REFUSED"} end do
-      {:error, m} =
+    with_mock Core.Repo, [:passthrough], update: fn _ -> {:error, cs} end do
+      {:error, _} =
         Fixture.cog_string_valid()
         |> Map.put(:value, "ops2@example.com")
         |> ConfigService.create()
 
-      assert m == "DB CONNECT REFUSED"
       assert 1 == Repo.one(from(p in Model.Config, select: count(p.id)))
     end
   end
@@ -222,13 +222,30 @@ defmodule Core.ConfigTest do
         Fixture.col_valid()
         |> Core.CollectionService.create()
 
-      {:ok, col_cs: col_cs}
+      {:ok, cs} = Fixture.cog_string_valid() |> ConfigService.create()
+      {:ok, col_cs: col_cs, cog_cs: cs}
     end
 
-    test "it should promote new version of collection", %{col_cs: col_cs} do
-      {:ok, cs} = Fixture.cog_string_valid() |> ConfigService.create()
-      {:ok, col} = Core.CollectionService.add_config(col_cs, [cs])
+    test "it should promote new version of collection", %{col_cs: col_cs, cog_cs: cog_cs} do
+      {:ok, col} = Core.CollectionService.add_config(col_cs, [cog_cs])
       assert col.version > col_cs.version
+    end
+
+    @tag focus: true
+    test "it should prmote another new version when the config get updated", %{
+      col_cs: col_cs,
+      cog_cs: cog_cs
+    } do
+      {:ok, col_v1} = Core.CollectionService.add_config(col_cs, [cog_cs])
+
+      Fixture.cog_string_valid()
+      |> Map.put(:value, "x@y.com")
+      |> ConfigService.create()
+
+      col_v2 = Core.CollectionService.find(col_cs.name, col_cs.namespace)
+
+      assert col_cs.version < col_v1.version
+      assert col_v1.version < col_v2.version
     end
   end
 

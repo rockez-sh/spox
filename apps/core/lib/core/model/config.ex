@@ -18,7 +18,7 @@ defmodule Core.Model.Config do
       Collection,
       join_through: "cog_col_ref",
       on_replace: :delete,
-      join_keys: [col_id: :id, cog_id: :id]
+      join_keys: [cog_id: :id, col_id: :id]
     )
 
     timestamps()

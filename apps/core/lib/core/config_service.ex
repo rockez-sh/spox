@@ -11,8 +11,7 @@ defmodule Core.ConfigService do
 
   def create(attrs \\ %{}) do
     case multi()
-         |> run(:assign_collection, &assign_collection/1, attrs)
-         |> run(:validate_schema, &validate_schema/1)
+         |> run(:validate_schema, &validate_schema/1, attrs)
          |> run(:define_default, &define_default_value/1)
          |> run(:defined_changeset, &define_changeset/1) do
       {:ok, %{defined_changeset: changeset}} ->
@@ -20,8 +19,8 @@ defmodule Core.ConfigService do
           {:ok} ->
             case Multi.new()
                  |> Multi.insert(:saving_cog, changeset)
-                 |> Multi.run(:promote_collection, &promote_collection/2)
                  |> Multi.run(:old_cog, &promote_latest/2)
+                 |> Multi.run(:promote_collection, &promote_collection/2)
                  |> Multi.run(:redis_copy, &copy_to_redis/2)
                  |> Repo.transaction() do
               {:ok, %{saving_cog: saving_cog}} ->
@@ -173,21 +172,31 @@ defmodule Core.ConfigService do
          |> where([c], c.id != ^changeset.id)
          |> where([c], c.name == ^changeset.name)
          |> where([c], c.latest == true)
-         |> repo.update_all(set: [latest: false]) do
-      {:error, error} -> {:error, error}
-      {1, nil} -> {:ok, changeset}
-      _ -> {:ok, changeset}
+         |> repo.one() do
+      nil ->
+        {:ok, nil}
+
+      prev_version ->
+        case prev_version
+             |> ConfigModel.changeset(%{latest: false})
+             |> repo.update do
+          {:ok, _} -> {:ok, prev_version}
+          {:error, _} -> {:error, "fail to update"}
+        end
     end
   end
 
-  defp promote_collection(repo, %{saving_cog: changeset}) do
-    # changeset = changeset |> Repo.preload(:collections)
-    # changeset.collec
-    # |> Enum.each(fn collection -> CollectionService.touch(repo, collection, changeset)  end)
+  defp promote_collection(repo, %{saving_cog: changeset, old_cog: %ConfigModel{} = prev_version}) do
+    Ecto.assoc(prev_version, :collections)
+    |> repo.all()
+    |> Enum.each(fn col -> CollectionService.add_config(repo, col, [changeset]) end)
+
     {:ok, :ok}
   end
 
-  defp validate_schema(%{assign_collection: %{schema: schema_name, value: value} = attrs}) do
+  defp promote_collection(_repo, _any), do: {:ok, :ok}
+
+  defp validate_schema(%{schema: schema_name, value: value} = attrs) do
     case from(s in SchemaConfig, where: s.name == ^schema_name) |> Repo.one() do
       nil ->
         {:error, :schema_not_found}
@@ -209,10 +218,10 @@ defmodule Core.ConfigService do
     end
   end
 
+  defp validate_schema(attrs), do: {:ok, attrs}
+
   defp normalize_value(value) when is_integer(value), do: "#{value}"
   defp normalize_value(value), do: value
-
-  defp validate_schema(%{assign_collection: attrs}), do: {:ok, attrs}
 
   defp assign_collection(%{collection: collection_name, namespace: namespace} = attrs) do
     {:ok, attrs}
