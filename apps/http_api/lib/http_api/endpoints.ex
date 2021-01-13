@@ -110,6 +110,29 @@ defmodule HttpApi.Endpoints do
     |> handle_response(conn)
   end
 
+  post "/api/col/:namespace/:name/add" do
+    %{"name" => name, "namespace" => namespace} = conn.params
+
+    case conn.body_params
+         |> Map.fetch("configs") do
+      :error ->
+        {:malformed_data, %{success: false, message: "no configs found in the request body"}}
+
+      {:ok, config_names} ->
+        case CollectionService.add_config(name, config_names, namespace) do
+          {:ok, collection} ->
+            {:ok, %{data: collection |> CollectionService.as_json()} |> Poison.encode!()}
+
+          {:error, message} ->
+            {:malformed_data, %{success: false, message: message} |> Poison.encode!()}
+
+          _ ->
+            {:server_error, "unknow error"}
+        end
+    end
+    |> handle_response(conn)
+  end
+
   post "/api/search" do
     params = conn.body_params |> Utils.atomize_map()
 

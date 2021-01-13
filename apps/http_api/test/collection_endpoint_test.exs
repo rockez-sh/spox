@@ -5,6 +5,8 @@ defmodule HttpApi.CollectionEnpointTest do
   import HttpApi.TestUtils
   alias Core.Fixture
   alias Core.CollectionService
+  alias Core.ConfigService
+  alias Core.Redis
   import Mock
 
   setup do
@@ -42,5 +44,33 @@ defmodule HttpApi.CollectionEnpointTest do
       assert_called(CollectionService.find(expected_result.name, expected_result.namespace))
       assert json == %{data: expected_result |> CollectionService.as_json()} |> Poison.encode!()
     end
+  end
+
+  test "post /api/col/:namespace/:name/add" do
+    Redis.command(["FLUSHALL"])
+    {:ok, col} = Fixture.col_valid() |> CollectionService.create()
+
+    {:ok, cog} =
+      Fixture.cog_string_valid()
+      |> ConfigService.create()
+
+    {200, json} =
+      make_call(:post, "/api/col/#{col.namespace}/#{col.name}/add", %{configs: [cog.name]})
+
+    %{"data" => %{"configs" => [cog_json | _]}} = json |> Poison.decode!()
+
+    assert cog_json |> Map.fetch!("name") == cog.name
+    assert cog_json |> Map.fetch!("value") == cog.value
+  end
+
+  test "post /api/col/:namespace/:name/add and config not present" do
+    Redis.command(["FLUSHALL"])
+    {:ok, col} = Fixture.col_valid() |> CollectionService.create()
+
+    {400, json} =
+      make_call(:post, "/api/col/#{col.namespace}/#{col.name}/add", %{configs: ["xconfigx"]})
+
+    assert %{"success" => false, "message" => "Cannot find config with name(s) xconfigx "} ==
+             json |> Poison.decode!()
   end
 end
