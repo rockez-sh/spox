@@ -190,4 +190,21 @@ defmodule Core.CollectionServiceTest do
       end
     end
   end
+
+  describe "add_config" do
+    setup do
+      {:ok, col} = Fixture.col_valid() |> create
+
+      {:ok, cog} =
+        Fixture.cog_string_valid()
+        |> ConfigService.create()
+
+      {:ok, col: col, cog: cog}
+    end
+
+    test "add config with name only", %{cog: cog, col: col} do
+      {:ok, new_col} = add_config(col.name, [cog.name], col.namespace)
+      assert new_col.version > col.version
+    end
+  end
 end

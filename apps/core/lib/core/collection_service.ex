@@ -48,8 +48,8 @@ defmodule Core.CollectionService do
     }
   end
 
-  def as_json([%Collection{} = head | rest] = changesets) do
-    ([head] ++ rest)
+  def as_json([%Collection{} = _head | _] = changesets) do
+    changesets
     |> Enum.map(fn changeset ->
       %{
         id: changeset.id,
@@ -122,8 +122,31 @@ defmodule Core.CollectionService do
     end
   end
 
-  def add_config(collection, configs) do
-    add_config(Repo, collection, configs)
+  def add_config(coll_name, [head | _] = config_names, namespace)
+      when is_binary(coll_name) and is_binary(head) do
+    case Collection
+         |> where([c], c.name == ^coll_name)
+         |> where([c], c.namespace == ^namespace)
+         |> Repo.one() do
+      nil ->
+        {:error, "Collection Not Found"}
+
+      collection ->
+        configs =
+          Config
+          |> where([c], c.name in ^config_names)
+          |> where([c], c.latest == true)
+          |> Repo.all()
+
+        if length(configs) == length(config_names) do
+          add_config(Repo, collection, configs)
+        else
+          config_db_names = configs |> Enum.map(fn x -> x.name end)
+          not_found = config_names - config_db_names
+          not_found = not_found |> Enum.join(", ")
+          {:error, "Cannot find config with name(s) #{not_found} "}
+        end
+    end
   end
 
   def add_config(repo, collection, configs) do
@@ -136,6 +159,10 @@ defmodule Core.CollectionService do
 
     copy_to_redis(repo, %{updated_col: collection, cog: configs})
     {:ok, collection}
+  end
+
+  def add_config(collection, configs) do
+    add_config(Repo, collection, configs)
   end
 
   defp copy_to_redis(_repo, %{updated_col: col, cog: cogs}) do
