@@ -23,7 +23,7 @@ function App() {
               <Route path="/config/:namespace?/:name?">
                 <ConfigPage />
               </Route>
-              <Route path="/collection">
+              <Route path="/collection/:namespace?/:name?">
                 <CollectionPage />
               </Route>
               <Route path="/schema/:name?">

@@ -170,7 +170,7 @@ export default function SearchPage() {
         <ResultGroup
           name="Collections"
           results={state.results.collections}
-          linkTo={() => "/"}
+          linkTo={({ name, namespace }) => `/collection/${namespace}/${name}`}
         />
         <ResultGroup
           name="schemas"
