@@ -3,7 +3,9 @@ import { Pane, Heading, PropertiesIcon, TextInputField, TextareaField, toaster, 
   Text,
   Button,
   EditIcon,
-  PlusIcon
+  PlusIcon,
+  CrossIcon,
+  IconButton
 } from "evergreen-ui";
 import { useState, useEffect } from "react";
 import {
@@ -19,7 +21,14 @@ import ActionPane from "../lib/ActionPane";
 import { Link, useParams } from "react-router-dom";
 import { DELAY_SEARCH } from "./SearchPage";
 var typingTimer;
-function SearchResultRow({config, index}) {
+const itemFinder = function(target, matcher=true) {
+  return function(x){
+    let match = x.name === target.name && x.namespace === target.namespace
+    return matcher ? match : !match
+  }
+}
+
+function SearchResultRow({config, index, onItemClick}) {
   const {name} = config
   return (
     <Table.Row key={index} height={32}>
@@ -31,8 +40,7 @@ function SearchResultRow({config, index}) {
           marginRight={16}
           appearance="minimal"
           iconBefore={PlusIcon}
-          is={Link}
-          to={config}
+          onClick={ () => onItemClick(config) }
         >
           Add
         </Button>
@@ -47,7 +55,7 @@ function LoadingSearch({searching}) {
       </Pane>
     )
 }
-function SearchForm({exclude}) {
+function SearchForm({exclude, onItemClick}) {
   const [state, setState] = useState({
     typing: false,
     lastTyping: 0,
@@ -56,9 +64,7 @@ function SearchForm({exclude}) {
     results: [],
   });
   const filterResult = function(target) {
-    console.log('target', target, 'exclude', exclude)
-    console.log('filter', exclude.find(x => x.name === target.name && x.namespace === target.namespace))
-    return isEmpty(exclude.find(x => x.name === target.name && x.namespace === target.namespace))
+    return isEmpty(exclude.find(itemFinder(target)))
   }
   const apiSearch = (value) => {
     if (isEmpty(value)) {
@@ -77,9 +83,7 @@ function SearchForm({exclude}) {
     }).then(({ status, json }) => {
       if (status == 200) {
         setState((s) => {
-          const filtered_result = json.data.configs.filter(filterResult)
-          console.log(filtered_result)
-          return { ...s, searching: false, results: filtered_result };
+          return { ...s, searching: false, results: json.data.configs };
         });
       }
     });
@@ -97,6 +101,7 @@ function SearchForm({exclude}) {
       }
     }, DELAY_SEARCH);
   }
+  let filtered_result = state.results.filter(filterResult)
   return (
     <Pane position="relative">
       <SearchInput
@@ -115,7 +120,7 @@ function SearchForm({exclude}) {
         zIndex={100}
         padding={20}
       >
-      { isEmpty(state.results) ? <LoadingSearch searching={state.searching} /> : state.results.map( config => SearchResultRow({config}) ) }
+      { isEmpty(filtered_result) ? <LoadingSearch searching={state.searching} /> : filtered_result.map( (config, index) => SearchResultRow({config, onItemClick, index}) ) }
       </Pane>
     </Pane>)
 }
@@ -125,6 +130,9 @@ export default function CollectionPage(argument) {
     loaded: false,
     saving: false,
     searching: false,
+    add_configs: [],
+    remove_configs: [],
+    current_configs: [],
     term: null,
     form_data: { name: null, desc: null, namespace: null, configs: [] },
   });
@@ -135,14 +143,56 @@ export default function CollectionPage(argument) {
     if (state.loaded) return;
 
     apiCall("/api/col/" + namespace + "/" + collectionName).then(({ status, json }) => {
-      if (status === 200)
-        setState({ ...state, form_data: json.data, loaded: true });
+      if (status === 200){
+        const configs = json.data.configs.map( x => {return {...x, namespace}} )
+        setState({ ...state, form_data: {...json.data, configs}, loaded: true, current_configs: configs });
+      }
       else if (status === 404)
         setState({ ...state, notFound: true, loaded: true });
     });
   }, [collectionName, namespace, state.loaded]);
 
-  const filterResult = state.form_data.configs.map(x => {return {...x, namespace: namespace}})
+  let filteredConfig = state.form_data.configs.map(x => {return {...x, namespace}})
+  filteredConfig = filteredConfig.concat(state.add_configs)
+
+  function addConfig(config) {
+    let finder = itemFinder(config, true)
+    let unFinder = itemFinder(config, false)
+    const {form_data, remove_configs, add_configs} = state
+    const {name, value, namespace} = config
+    if(state.current_configs.find(finder)){
+      // if present in current_configs
+      // it means was remove from form_data
+      // need to add tobe added back to form_data and remove from removed_configs
+      setState({...state,
+        remove_configs: remove_configs.filter(unFinder),
+        form_data: {...form_data,
+          configs: form_data.configs.concat([{name, value, namespace}]) }
+      });
+    }else{
+      setState({...state,
+        add_configs: add_configs.concat([config])
+      })
+    }
+  }
+  function removeConfig(config) {
+    let finder = itemFinder(config, true)
+    let unFinder = itemFinder(config, false)
+    const {form_data, remove_configs, add_configs} = state
+    console.log('state', state)
+    const {name, value, namespace} = config
+    if(state.current_configs.find(finder)){
+      setState({...state,
+        remove_configs: remove_configs.concat([config]),
+        form_data: {...form_data,
+          configs: form_data.configs.filter(unFinder)}
+      });
+    }else{
+      setState({...state,
+        add_configs: add_configs.filter(unFinder)
+      })
+    }
+  }
   function submit() {
     setState({ ...state, saving: true });
     apiCall("/api/col", {
@@ -193,25 +243,29 @@ export default function CollectionPage(argument) {
         />
         <Pane display="" display={ state.loaded ? 'inherited'  : 'none' }>
           <Heading marginBottom={20}>Configs</Heading>
-          <SearchForm exclude={ filterResult } />
+          <SearchForm exclude={ filteredConfig } onItemClick={addConfig} />
           <Pane marginTop={20}>
-            {state.form_data.configs.map((item, index) => {
+            {filteredConfig.map((item, index) => {
               const { name } = item;
               return (
-                <Table.Row key={index} height={32}>
-                  <Table.TextCell flexBasis={560} flexShrink={0} flexGrow={0}>
+                <Table.Row key={index} flexBasis={560} flexShrink={0} flexGrow={0} height={32}>
+                  <Table.TextCell>
                     <Text size={500}>{name}</Text>
                   </Table.TextCell>
                   <Table.TextCell textAlign="right" padding={5}>
-                    <Button
-                      marginRight={16}
-                      appearance="minimal"
-                      iconBefore={EditIcon}
-                      is={Link}
-                      to={item}
-                    >
-                      edit
-                    </Button>
+                    <Pane float="right"  display="flex" align="right" alignContent="flex-end">
+                      <IconButton
+                        appearance="minimal"
+                        icon={EditIcon}
+                        is={Link}
+                        to={`/config/${namespace}/${name}`}
+                      />
+                      <IconButton
+                        appearance="minimal"
+                        icon={CrossIcon}
+                        onClick={() => removeConfig(item)}
+                      />
+                    </Pane>
                   </Table.TextCell>
                 </Table.Row>
               );
