@@ -18,7 +18,7 @@ import {
   isEmpty,
 } from "../Utils";
 import ActionPane from "../lib/ActionPane";
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams, useHistory } from "react-router-dom";
 import { DELAY_SEARCH } from "./SearchPage";
 var typingTimer;
 const itemFinder = function(target, matcher=true) {
@@ -138,6 +138,7 @@ export default function CollectionPage(argument) {
   });
   const stateUpdater = formState(state, setState);
   const { name: collectionName, namespace: namespace } = useParams();
+  let history = useHistory()
 
   useEffect(() => {
     if (isEmpty(collectionName)) return;
@@ -145,8 +146,7 @@ export default function CollectionPage(argument) {
 
     apiCall("/api/col/" + namespace + "/" + collectionName).then(({ status, json }) => {
       if (status === 200){
-        const configs = json.data.configs.map( x => {return {...x, namespace}} )
-        setState({ ...state, form_data: {...json.data, configs}, original_form_data: {...json.data, configs},  loaded: true });
+        setFormData(json.data, {loaded: true})
       }
       else if (status === 404)
         setState({ ...state, notFound: true, loaded: true });
@@ -172,6 +172,14 @@ export default function CollectionPage(argument) {
       })
     }
   }
+
+  function setFormData(form_data, extra){
+    const {namespace} = form_data
+    const configs = form_data.configs.map( x => {return {...x, namespace}} )
+    const newFormData = {...form_data, configs}
+    setState({ ...state, ...extra, form_data: newFormData, original_form_data: newFormData });
+  }
+
   function removeConfig(config) {
     const finder = itemFinder(config, true)
     const unFinder = itemFinder(config, false)
@@ -209,7 +217,7 @@ export default function CollectionPage(argument) {
       }).then(({ status, json }) => {
         if (status == 200) {
           toaster.success("Collection saved 🎉");
-          setState({ ...state, saving: false, loaded: true });
+          setFormData(json, {loaded: true, saving: false})
         }
       });
     }
@@ -284,7 +292,7 @@ export default function CollectionPage(argument) {
             })}
           </Pane>
         </Pane>
-        <ActionPane saving={state.saving} onSubmit={submit} disabled={ !(collectionDetailChanged() || isConfigsModified()) } />
+        <ActionPane saving={state.saving} history={history} onSubmit={submit} disabled={ !(collectionDetailChanged() || isConfigsModified()) } />
       </Pane>
     </Pane>
   );
