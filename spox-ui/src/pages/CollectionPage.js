@@ -132,12 +132,13 @@ export default function CollectionPage(argument) {
     searching: false,
     add_configs: [],
     remove_configs: [],
-    current_configs: [],
     term: null,
     form_data: { name: null, desc: null, namespace: null, configs: [] },
+    original_form_data: {}
   });
   const stateUpdater = formState(state, setState);
   const { name: collectionName, namespace: namespace } = useParams();
+
   useEffect(() => {
     if (isEmpty(collectionName)) return;
     if (state.loaded) return;
@@ -145,25 +146,21 @@ export default function CollectionPage(argument) {
     apiCall("/api/col/" + namespace + "/" + collectionName).then(({ status, json }) => {
       if (status === 200){
         const configs = json.data.configs.map( x => {return {...x, namespace}} )
-        setState({ ...state, form_data: {...json.data, configs}, loaded: true, current_configs: configs });
+        setState({ ...state, form_data: {...json.data, configs}, original_form_data: {...json.data, configs},  loaded: true });
       }
       else if (status === 404)
         setState({ ...state, notFound: true, loaded: true });
     });
   }, [collectionName, namespace, state.loaded]);
 
-  let filteredConfig = state.form_data.configs.map(x => {return {...x, namespace}})
-  filteredConfig = filteredConfig.concat(state.add_configs)
 
   function addConfig(config) {
-    let finder = itemFinder(config, true)
-    let unFinder = itemFinder(config, false)
-    const {form_data, remove_configs, add_configs} = state
+    const finder = itemFinder(config, true)
+    const unFinder = itemFinder(config, false)
+    const {form_data, original_form_data, remove_configs, add_configs} = state
     const {name, value, namespace} = config
-    if(state.current_configs.find(finder)){
-      // if present in current_configs
-      // it means was remove from form_data
-      // need to add tobe added back to form_data and remove from removed_configs
+
+    if(original_form_data.configs.find(finder)){
       setState({...state,
         remove_configs: remove_configs.filter(unFinder),
         form_data: {...form_data,
@@ -171,17 +168,17 @@ export default function CollectionPage(argument) {
       });
     }else{
       setState({...state,
-        add_configs: add_configs.concat([config])
+        add_configs: add_configs.concat([{...config, is_new: true}])
       })
     }
   }
   function removeConfig(config) {
-    let finder = itemFinder(config, true)
-    let unFinder = itemFinder(config, false)
-    const {form_data, remove_configs, add_configs} = state
-    console.log('state', state)
+    const finder = itemFinder(config, true)
+    const unFinder = itemFinder(config, false)
+    const {form_data, remove_configs, add_configs, original_form_data} = state
     const {name, value, namespace} = config
-    if(state.current_configs.find(finder)){
+
+    if(original_form_data.configs.find(finder)){
       setState({...state,
         remove_configs: remove_configs.concat([config]),
         form_data: {...form_data,
@@ -193,18 +190,33 @@ export default function CollectionPage(argument) {
       })
     }
   }
-  function submit() {
-    setState({ ...state, saving: true });
-    apiCall("/api/col", {
-      method: "POST",
-      body: JSON.stringify({ col: state.form_data }),
-    }).then(({ status, json }) => {
-      if (status == 200) {
-        toaster.success("Collection saved 🎉");
-        setState({ ...state, saving: false, loaded: true });
-      }
-    });
+  function collectionDetailChanged(){
+    const {form_data, original_form_data} = state
+    return form_data.desc != original_form_data.desc
   }
+
+  function isConfigsModified(){
+    const {remove_configs, add_configs} = state
+    return notEmpty(remove_configs) || notEmpty(add_configs)
+  }
+
+  function submit() {
+    if(collectionDetailChanged()) {
+      setState({ ...state, saving: true });
+      apiCall("/api/col", {
+        method: "POST",
+        body: JSON.stringify({ col: state.form_data }),
+      }).then(({ status, json }) => {
+        if (status == 200) {
+          toaster.success("Collection saved 🎉");
+          setState({ ...state, saving: false, loaded: true });
+        }
+      });
+    }
+  }
+
+  let filteredConfig = state.form_data.configs.map(x => {return {...x, namespace}})
+  filteredConfig = filteredConfig.concat(state.add_configs)
 
   return (
     <Pane>
@@ -238,7 +250,7 @@ export default function CollectionPage(argument) {
         <TextareaField
           label="Description"
           placeholder="A brief words what this config are for"
-          onChange={stateUpdater("desc")}
+          onChange={ stateUpdater("desc") }
           value={state.form_data.desc}
         />
         <Pane display="" display={ state.loaded ? 'inherited'  : 'none' }>
@@ -246,9 +258,9 @@ export default function CollectionPage(argument) {
           <SearchForm exclude={ filteredConfig } onItemClick={addConfig} />
           <Pane marginTop={20}>
             {filteredConfig.map((item, index) => {
-              const { name } = item;
+              const { name, is_new } = item;
               return (
-                <Table.Row key={index} flexBasis={560} flexShrink={0} flexGrow={0} height={32}>
+                <Table.Row key={index} intent={ is_new ? 'success' : 'none'  } flexBasis={560} flexShrink={0} flexGrow={0} height={32}>
                   <Table.TextCell>
                     <Text size={500}>{name}</Text>
                   </Table.TextCell>
@@ -272,7 +284,7 @@ export default function CollectionPage(argument) {
             })}
           </Pane>
         </Pane>
-        <ActionPane saving={state.saving} onSubmit={submit} />
+        <ActionPane saving={state.saving} onSubmit={submit} disabled={ !(collectionDetailChanged() || isConfigsModified()) } />
       </Pane>
     </Pane>
   );

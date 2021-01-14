@@ -1,7 +1,7 @@
 import { Pane, Button, SmallCrossIcon, SavedIcon } from "evergreen-ui";
 import { Link } from "react-router-dom";
 
-export default function ActionPane({ saving, onSubmit }) {
+export default function ActionPane({ saving, onSubmit, disabled }) {
   return (
     <Pane>
       <Pane padding={20} marginTop={20} textAlign="right" background="tint1">
@@ -13,6 +13,7 @@ export default function ActionPane({ saving, onSubmit }) {
           onClick={onSubmit}
           iconBefore={saving ? null : SavedIcon}
           isLoading={saving}
+          disabled={!!disabled}
         >
           {saving ? "Saving ..." : "Save"}
         </Button>
