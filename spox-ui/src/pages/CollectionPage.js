@@ -209,8 +209,12 @@ export default function CollectionPage(argument) {
   }
 
   function submit() {
-    if(collectionDetailChanged()) {
+    const {add_configs, form_data} = state
+    const {namespace, name, configs} = form_data
+    if(collectionDetailChanged() || isConfigsModified())
       setState({ ...state, saving: true });
+
+    if(collectionDetailChanged()) {
       apiCall("/api/col", {
         method: "POST",
         body: JSON.stringify({ col: state.form_data }),
@@ -218,6 +222,21 @@ export default function CollectionPage(argument) {
         if (status == 200) {
           toaster.success("Collection saved 🎉");
           setFormData(json, {loaded: true, saving: false})
+        }
+      });
+    }
+
+    if(isConfigsModified()) {
+      apiCall(`/api/col/${namespace}/${name}/add`, {
+        method: "POST",
+        body: JSON.stringify({ configs: state.add_configs.map(x => x.name) }),
+      }).then(({ status, json }) => {
+        if (status == 200) {
+          toaster.success("Configs updated 🎉");
+          let new_add_configs = add_configs.map( ({name, namespace}) => {return {name , namespace}})
+          setState({...state, saving: false, add_configs: [],
+            form_data: {...form_data,
+              configs: configs.concat(new_add_configs)  }})
         }
       });
     }
