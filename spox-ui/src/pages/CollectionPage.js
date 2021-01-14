@@ -237,6 +237,10 @@ export default function CollectionPage(argument) {
           setState({...state, saving: false, add_configs: [],
             form_data: {...form_data,
               configs: configs.concat(new_add_configs)  }})
+        }else{
+          const {message} = json
+          toaster.danger(`😓  failed to udpdate configs, message: ${message}`);
+          setState({...state, saving: false })
         }
       });
     }

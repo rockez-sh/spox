@@ -44,6 +44,7 @@ defmodule Core.CollectionService do
       version: changeset.version,
       name: changeset.name,
       desc: changeset.desc,
+      namespace: changeset.namespace,
       configs: changeset |> configs_as_json
     }
   end
@@ -55,7 +56,8 @@ defmodule Core.CollectionService do
         id: changeset.id,
         version: changeset.version,
         name: changeset.name,
-        desc: changeset.desc
+        desc: changeset.desc,
+        namespace: changeset.namespace
       }
     end)
   end
@@ -121,7 +123,7 @@ defmodule Core.CollectionService do
       |> search(page, per_page)
     end
   end
-
+  def add_config(coll_name, [], namespace) when is_binary(coll_name),  do: {:error, "no new config provided"}
   def add_config(coll_name, [head | _] = config_names, namespace)
       when is_binary(coll_name) and is_binary(head) do
     case Collection
@@ -142,7 +144,7 @@ defmodule Core.CollectionService do
           add_config(Repo, collection, configs)
         else
           config_db_names = configs |> Enum.map(fn x -> x.name end)
-          not_found = config_names - config_db_names
+          not_found = config_names -- config_db_names
           not_found = not_found |> Enum.join(", ")
           {:error, "Cannot find config with name(s) #{not_found} "}
         end
