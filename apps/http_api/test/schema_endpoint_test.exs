@@ -82,7 +82,11 @@ defmodule HttpApi.SchemaEndpointTest do
 
     assert status == 400
     %{"success" => false, "errors" => %{"value" => value_error}} = sch_json |> Poison.decode!()
-    assert value_error == "Invalid JSON Schema"
+
+    assert String.match?(
+             value_error["message"],
+             ~r/schema did not pass validation against its meta-schema/
+           )
   end
 
   describe "get /api/sch/:name " do
