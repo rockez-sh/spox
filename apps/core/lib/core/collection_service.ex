@@ -123,7 +123,10 @@ defmodule Core.CollectionService do
       |> search(page, per_page)
     end
   end
-  def add_config(coll_name, [], namespace) when is_binary(coll_name),  do: {:error, "no new config provided"}
+
+  def add_config(coll_name, [], _namespace) when is_binary(coll_name),
+    do: {:error, "no new config provided"}
+
   def add_config(coll_name, [head | _] = config_names, namespace)
       when is_binary(coll_name) and is_binary(head) do
     case Collection

@@ -23,9 +23,11 @@ defmodule Mix.Tasks.CoreSeed do
     |> Enum.map(&atomize_map/1)
     |> Enum.each(fn x ->
       {:ok, _} = Core.ConfigService.create(x)
+
       case x |> Map.fetch(:collection) do
         {:ok, collection} ->
           {:ok, _} = Core.CollectionService.add_config(collection, [x[:name]], x[:namespace])
+
         :error ->
           {:ok}
       end
