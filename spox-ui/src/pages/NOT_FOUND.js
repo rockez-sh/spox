@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 
 export default function NOTFOUND() {
   return (
-    <Pane marginTop={250}>
+    <Pane marginTop={250} width={700}>
       <Heading size={900} marginBottom={30}>
         404
       </Heading>

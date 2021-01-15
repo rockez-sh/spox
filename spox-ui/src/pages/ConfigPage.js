@@ -183,7 +183,7 @@ export default function ConfigPage(argument) {
   }, [configName, namespace]);
 
   return (
-    <Pane>
+    <Pane width={700}>
       <Pane paddingBottom={10} borderBottom="muted" marginBottom={20}>
         <Heading size={700}>
           <WrenchIcon /> Config

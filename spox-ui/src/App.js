@@ -18,25 +18,26 @@ function App() {
           justifyContent="center"
           paddingTop={50}
         >
-          <Pane width={700}>
-            <Switch>
-              <Route path="/config/:namespace?/:name?">
-                <ConfigPage />
-              </Route>
-              <Route path="/collection/:namespace?/:name?">
-                <CollectionPage />
-              </Route>
-              <Route path="/schema/:name?">
-                <SchemaPage />
-              </Route>
-              <Route path="/search">
-                <SearchPage />
-              </Route>
-              <Route path="/">
-                <HomePage />
-              </Route>
-            </Switch>
-          </Pane>
+          <Switch>
+            <Route path="/config/:namespace?/:name?">
+              <ConfigPage />
+            </Route>
+            <Route path="/collection/:namespace?/:name?">
+              <CollectionPage />
+            </Route>
+            <Route path="/schema/:name?">
+              <SchemaPage />
+            </Route>
+            <Route path="/schema-test">
+              <SchemaTestPage />
+            </Route>
+            <Route path="/search">
+              <SearchPage />
+            </Route>
+            <Route path="/">
+              <HomePage />
+            </Route>
+          </Switch>
         </Pane>
       </div>
     </Router>

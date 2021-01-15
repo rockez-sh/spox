@@ -64,7 +64,7 @@ export default function SchemaPage() {
   if (state.notFound) return <NOTFOUND />;
 
   return (
-    <Pane>
+    <Pane width={700}>
       <Pane paddingBottom={10} borderBottom="muted" marginBottom={20}>
         <Heading size={700}>
           <DocumentIcon /> Schema

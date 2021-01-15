@@ -250,7 +250,7 @@ export default function CollectionPage(argument) {
   filteredConfig = filteredConfig.concat(state.add_configs)
 
   return (
-    <Pane>
+    <Pane width={700}>
       <Pane paddingBottom={10} borderBottom="muted" marginBottom={20}>
         <Heading size={700}>
           <PropertiesIcon /> Collection

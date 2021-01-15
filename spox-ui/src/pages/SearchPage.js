@@ -125,7 +125,7 @@ export default function SearchPage() {
   }, [query]);
 
   return (
-    <Pane marginTop={0}>
+    <Pane marginTop={0} width={700}>
       <Pane display="flex">
         <Pane width="75%">
           <Heading size={700} marginBottom={0}>
