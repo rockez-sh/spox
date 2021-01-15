@@ -75,7 +75,8 @@ defmodule Core.SchemaService do
     try do
       {:ok, parsed_json |> ExJsonSchema.Schema.resolve()}
     rescue
-      ExJsonSchema.Schema.InvalidSchemaError -> {:error, "Invalid JSON Schema"}
+      e in ExJsonSchema.Schema.InvalidSchemaError ->
+        {:error, e}
     end
   end
 
