@@ -8,6 +8,7 @@ import {
   SavedIcon,
   SmallCrossIcon,
   toaster,
+  Alert
 } from "evergreen-ui";
 import JSONInput from "react-json-editor-ajrm";
 import locale from "react-json-editor-ajrm/locale/en";
@@ -27,6 +28,7 @@ export default function SchemaPage() {
     saved: false,
     loaded: false,
     notFound: false,
+    error_response: null,
     form_data: { name: null, desc: null, value: "{}" },
   });
   const stateUpdater = formState(state, setState);
@@ -52,7 +54,9 @@ export default function SchemaPage() {
     }).then(({ status, json }) => {
       if (status == 200) {
         toaster.success("Schema saved 🎉");
-        setState({ ...state, saving: false, loaded: true });
+        setState({ ...state, saving: false, loaded: true, error_response: null });
+      } else {
+        setState({...state, error_response: json, saving: false})
       }
     });
   }
@@ -87,6 +91,11 @@ export default function SchemaPage() {
         />
       </Pane>
       <Pane>
+        <Alert display={state.error_response ? 'inherited' : 'none'}
+          intent="danger"
+          title="Fail to save schema">
+          <pre style={{whiteSpace: "pre-wrap"}}>{ JSON.stringify(state.error_response, null, 4) }</pre>
+        </Alert>
         <Pane elevation={3} padding={10}>
           <JSONInput
             id="a_unique_id"
