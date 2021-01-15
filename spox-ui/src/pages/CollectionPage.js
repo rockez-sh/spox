@@ -235,8 +235,7 @@ export default function CollectionPage(argument) {
           toaster.success("Configs updated 🎉");
           let new_add_configs = add_configs.map( ({name, namespace}) => {return {name , namespace}})
           setState({...state, saving: false, add_configs: [],
-            form_data: {...form_data,
-              configs: configs.concat(new_add_configs)  }})
+            form_data: json.data})
         }else{
           const {message} = json
           toaster.danger(`😓  failed to udpdate configs, message: ${message}`);
@@ -267,6 +266,7 @@ export default function CollectionPage(argument) {
             value={state.form_data.name}
             disabled={state.loaded}
             onChange={stateUpdater("name")}
+            hint={ !state.loaded ? undefined : `🔖 ${state.form_data.version}`  }
           />
           <TextInputField
             label="Namespace"

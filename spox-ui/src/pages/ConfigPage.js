@@ -78,7 +78,7 @@ function SchemaForm(props) {
     if (notEmpty(schemaName)) {
       apiCall("/api/sch/" + schemaName).then(({ status, json }) => {
         if (status == 200) {
-          let {
+          const {
             data: { value },
           } = json;
           setState({ ...state, schema: JSON.parse(value), loaded: true });
@@ -222,7 +222,7 @@ export default function ConfigPage(argument) {
             Schema
           </Text>
           <Pane>
-            <SelectMenu
+            <SelectMenu display={state.loaded ? 'none' : 'inherited'}
               title="Select name"
               options={state.schema_list.map((value) => ({
                 label: value,
@@ -235,12 +235,17 @@ export default function ConfigPage(argument) {
               onFilterChange={fetchSchema}
               closeOnSelect={true}
             >
-              <Button>
+              <Button display={state.loaded ? 'none' : 'inherited'}>
                 {state.form_data.schema
                   ? state.form_data.schema
                   : "Select Schema..."}
               </Button>
             </SelectMenu>
+            <TextInput
+              display={!state.loaded ? 'none' : 'inherited'}
+              placeholder="namespace for your config"
+              value={state.form_data.schema}
+              disabled={state.loaded} />
           </Pane>
         </Pane>
         <SchemaForm
